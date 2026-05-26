@@ -2,13 +2,13 @@
 :: ==================================================
 :: Author: securekim (https://securekim.com)
 :: License: MIT License
-:: ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ó°ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ Ç¥ï¿½â¸¸ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ö½Ã¸ï¿½ ï¿½Ë´Ï´ï¿½.
+:: ÀÚÀ¯·Ó°Ô ¼öÁ¤¡¤»ç¿ë °¡´É. ¿øº» Ç¥±â¸¸ ³²°ÜÁÖ¼¼¿ä.
 :: ==================================================
 setlocal enabledelayedexpansion
 
-set "VERSION=1.0.1"
+set "VERSION=1.0.2"
 
-:: ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½
+:: ±âº» °æ·Î ¼³Á¤
 set "CONFIG_BASE_DIR=%~dp0claude_configs"
 if not exist "!CONFIG_BASE_DIR!" mkdir "!CONFIG_BASE_DIR!"
 set "GLOBAL_PATH_FILE=!CONFIG_BASE_DIR!\last_path.txt"
@@ -21,7 +21,7 @@ set "ARG3=%~3"
 set "NEW_PATH="
 set "TARGET_ALIAS="
 
-:: PowerShell ï¿½ï¿½Å©ï¿½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½
+:: PowerShell ½ºÅ©¸³Æ® »ý¼º
 (
 echo param^($ConfigDir, $CurrentPath, $MaxSessions^)
 echo if ^([string]::IsNullOrEmpty^($MaxSessions^)^) { $MaxSessions = 1 }
@@ -85,11 +85,11 @@ echo     elseif ^($matchedFiles.Count -gt 0^) { $primarySessionId = $matchedFile
 echo } elseif ^($matchedFiles.Count -gt 0^) { $primarySessionId = $matchedFiles[0].BaseName }
 echo elseif ^([string]::IsNullOrEmpty^($CurrentPath^)^) { $primarySessionId = $globalSessionId }
 echo if ^([string]::IsNullOrEmpty^($primarySessionId^)^) { Write-Output "S_COUNT=0"; exit }
-echo $cwd = "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½"
-echo $branch = "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½"
-echo $time = "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½"
-echo $userMsg = "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½"
-echo $assistantMsg = "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½"
+echo $cwd = "¾Ë ¼ö ¾øÀ½"
+echo $branch = "¾Ë ¼ö ¾øÀ½"
+echo $time = "¾Ë ¼ö ¾øÀ½"
+echo $userMsg = "¾Ë ¼ö ¾øÀ½"
+echo $assistantMsg = "¾Ë ¼ö ¾øÀ½"
 echo if ^($matchedFiles.Count -gt 0^) {
 echo     foreach ^($line in Get-Content $matchedFiles[0].FullName -Encoding UTF8^) {
 echo         try {
@@ -117,11 +117,11 @@ echo Write-Output "S_ASSISTANT=$assistantMsg"
 echo $count = 0
 echo foreach ^($file in $matchedFiles^) {
 echo     $count++
-echo     $cwd = "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½"
-echo     $branch = "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½"
-echo     $time = "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½"
-echo     $userMsg = "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½"
-echo     $assistantMsg = "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½"
+echo     $cwd = "¾Ë ¼ö ¾øÀ½"
+echo     $branch = "¾Ë ¼ö ¾øÀ½"
+echo     $time = "¾Ë ¼ö ¾øÀ½"
+echo     $userMsg = "¾Ë ¼ö ¾øÀ½"
+echo     $assistantMsg = "¾Ë ¼ö ¾øÀ½"
 echo     foreach ^($line in Get-Content $file.FullName -Encoding UTF8^) {
 echo         try {
 echo             $obj = $line ^| ConvertFrom-Json -ErrorAction SilentlyContinue
@@ -148,7 +148,7 @@ echo }
 echo Write-Output "S_COUNT=$count"
 ) > "!PS_SCRIPT!"
 
-:: settings.json ï¿½Ã·ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ Å° ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Å©ï¿½ï¿½Æ® (ï¿½Û·Î¹ï¿½ -^> alias)
+:: settings.json ÀÏºÎ Å° ¸ÓÁö ½ºÅ©¸³Æ® (±Û·Î¹ú -^> alias)
 (
 echo param^($AliasDir, $GlobalDir^)
 echo $g = Join-Path $GlobalDir "settings.json"
@@ -167,7 +167,7 @@ echo $json = $ad ^| ConvertTo-Json -Depth 32
 echo [IO.File]::WriteAllText^($a, $json, [Text.UTF8Encoding]::new^($false^)^)
 ) > "!MERGE_SCRIPT!"
 
-:: 1. Æ¯ï¿½ï¿½ ï¿½ï¿½ï¿½É¾ï¿½ Ã³ï¿½ï¿½
+:: 1. Æ¯¼ö ¸í·É¾î Ã³¸®
 if /i "!ARG1!"=="" goto :START_PARSE
 if /i "!ARG1!"=="-h" goto :SHOW_HELP
 if /i "!ARG1!"=="--help" goto :SHOW_HELP
@@ -180,7 +180,7 @@ if /i "!ARG1!"=="info" goto :DO_INFO
 if /i "!ARG1!"=="version" goto :DO_VERSION
 
 :START_PARSE
-:: 2. ï¿½Î¼ï¿½ ï¿½Ð¼ï¿½: ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½Ú¿ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Aliasï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+:: 2. ÀÎÀÚ ºÐ¼®: °æ·Î / °èÁ¤ Alias ÀÚµ¿ ÆÇº°
 if not "!ARG1!"=="" (
     if exist "!ARG1!\" (
         set "NEW_PATH=!ARG1!"
@@ -194,7 +194,7 @@ if not "!ARG1!"=="" (
     )
 )
 
-:: 3. ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+:: 3. ÇÁ·ÎÇÊ °áÁ¤
 if "!TARGET_ALIAS!"=="" (
     if exist "!LAST_ALIAS_FILE!" set /p TARGET_ALIAS=<"!LAST_ALIAS_FILE!"
 )
@@ -203,17 +203,17 @@ if not "!TARGET_ALIAS!"=="" (
     if exist "!CONFIG_BASE_DIR!\!TARGET_ALIAS!" (
         set "CLAUDE_CONFIG_DIR=!CONFIG_BASE_DIR!\!TARGET_ALIAS!"
         echo !TARGET_ALIAS!>"!LAST_ALIAS_FILE!"
-        echo [ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½] ï¿½ï¿½ï¿½ï¿½ Alias '!TARGET_ALIAS!' ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï·ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
+        echo [ÇÁ·ÎÇÊ Àû¿ë] °èÁ¤ Alias '!TARGET_ALIAS!' ÇÁ·ÎÆÄÀÏ·Î ½ÇÇàÇÕ´Ï´Ù.
     ) else (
-        echo [ï¿½ï¿½ï¿½ï¿½] '!TARGET_ALIAS!' ï¿½ï¿½ï¿½ï¿½ Aliasï¿½ï¿½ ï¿½Ø´ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½. %~n0 loginï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¼ï¿½ï¿½ï¿½.
+        echo [¿À·ù] '!TARGET_ALIAS!' °èÁ¤ Alias¿¡ ÇØ´çÇÏ´Â ÇÁ·ÎÆÄÀÏÀÌ ¾ø½À´Ï´Ù. %~n0 login À¸·Î ¸ÕÀú »ý¼ºÇÏ¼¼¿ä.
         goto :EOF
     )
 ) else (
-    echo [ï¿½ï¿½ï¿½ï¿½] ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½. %~n0 loginï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¼ï¿½ï¿½ï¿½.
+    echo [¿À·ù] »ç¿ëÇÒ ÇÁ·ÎÆÄÀÏÀÌ ¾ø½À´Ï´Ù. %~n0 login À¸·Î ¸ÕÀú »ý¼ºÇÏ¼¼¿ä.
     goto :EOF
 )
 
-:: ï¿½ï¿½ï¿½ï¿½ È¯ï¿½ï¿½ ï¿½ï¿½ï¿?ï¿½Ã·ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½Í¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+:: Àü¿ª È¯°æÀÇ plugins/hooks µð·ºÅÍ¸® ½Éº¼¸¯ ¸µÅ© °øÀ¯
 set "GLOBAL_CLAUDE_DIR=%USERPROFILE%\.claude"
 if not exist "!GLOBAL_CLAUDE_DIR!\plugins" mkdir "!GLOBAL_CLAUDE_DIR!\plugins"
 if not exist "!GLOBAL_CLAUDE_DIR!\hooks" mkdir "!GLOBAL_CLAUDE_DIR!\hooks"
@@ -229,15 +229,15 @@ for %%D in (plugins hooks) do (
     )
 )
 
-:: MCP ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½È­
+:: MCP ¼³Á¤ ÆÄÀÏ µ¿±âÈ­
 if exist "!GLOBAL_CLAUDE_DIR!\mcp.json" (
     copy /Y "!GLOBAL_CLAUDE_DIR!\mcp.json" "!CLAUDE_CONFIG_DIR!\mcp.json" >nul 2>&1
 )
 
-:: settings.json ï¿½Ã·ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ Å° ï¿½Úµï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½Û·Î¹ï¿½ -^> alias, caveman ï¿½ï¿½)
+:: settings.json ÀÏºÎ Å° ¸ÓÁö (±Û·Î¹ú -^> alias)
 powershell -NoProfile -ExecutionPolicy Bypass -File "!MERGE_SCRIPT!" "!CLAUDE_CONFIG_DIR!" "!GLOBAL_CLAUDE_DIR!" >nul 2>&1
 
-:: 4. ï¿½ï¿½ï¿?Ã³ï¿½ï¿½
+:: 4. °æ·Î Ã³¸®
 set "PROFILE_PATH_FILE=!CLAUDE_CONFIG_DIR!\last_path.txt"
 
 if not "!NEW_PATH!"=="" (
@@ -253,12 +253,12 @@ if "!LAST_PATH!"=="" (
 
 if "!LAST_PATH!"=="" (
     echo.
-    set /p LAST_PATH="ï¿½Ìµï¿½ï¿½ï¿½ ï¿½ï¿½Î¸ï¿?ï¿½Ô·ï¿½ï¿½Ï¼ï¿½ï¿½ï¿½: "
+    set /p LAST_PATH="ÀÌµ¿ÇÒ °æ·Î¸¦ ÀÔ·ÂÇÏ¼¼¿ä: "
     echo !LAST_PATH!>"!PROFILE_PATH_FILE!"
     echo !LAST_PATH!>"!GLOBAL_PATH_FILE!"
 )
 
-:: 5. ï¿½Úµï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ È®ï¿½ï¿½ ï¿½ï¿½ ï¿½ç°³ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+:: 5. ÀÚµ¿ ¼¼¼Ç °¨Áö ¹× Àç°³ Ã³¸®
 set "RESUME_ARG="
 powershell -NoProfile -ExecutionPolicy Bypass -File "!PS_SCRIPT!" "!CLAUDE_CONFIG_DIR!" "!LAST_PATH!" > "!CONFIG_BASE_DIR!\temp_session.txt"
 set "S_ID="
@@ -275,15 +275,15 @@ for /f "tokens=1,* delims==" %%A in ('type "!CONFIG_BASE_DIR!\temp_session.txt"'
 
 if not "!S_ID!"=="" (
     echo --------------------------------------------------
-    echo [ï¿½Ö±ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½]
-    echo  - ï¿½Û¾ï¿½ ï¿½ï¿½Ä¡: !S_PATH!
-    echo  - ï¿½ï¿½ï¿½ï¿½ ï¿½Ã°ï¿½: !S_TIME!
-    echo  - ï¿½Ö±ï¿½ ï¿½Ô·ï¿½: !S_USER!
+    echo [ÃÖ±Ù ¼¼¼Ç Á¤º¸]
+    echo  - ÀÛ¾÷ À§Ä¡: !S_PATH!
+    echo  - ¸¶Áö¸· ½Ã°¢: !S_TIME!
+    echo  - ÃÖ±Ù ÀÔ·Â: !S_USER!
     echo --------------------------------------------------
 
     :ASK_SESSION
     set "USE_SESSION="
-    set /p USE_SESSION="ï¿½Ö±ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ì¾î¼­ ï¿½ï¿½ï¿½ï¿½ï¿½Ò±ï¿½ï¿? (y/n) ï¿½Ç´ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ë»ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ô·ï¿½(ï¿½ï¿½ï¿½ï¿½): "
+    set /p USE_SESSION="ÃÖ±Ù ¼¼¼ÇÀ» ÀÌ¾î¼­ ÁøÇàÇÒ±î¿ä? (y/n) ¶Ç´Â °Ë»öÇÒ ¼¼¼Ç °³¼ö ÀÔ·Â(¼ýÀÚ): "
 
     if /i "!USE_SESSION!"=="y" (
         set "RESUME_ARG=--resume !S_ID!"
@@ -304,7 +304,7 @@ if not "!S_ID!"=="" (
     goto :ASK_SESSION
 
     :FETCH_MULTIPLE_SESSIONS
-    echo ï¿½Ö±ï¿½ !USE_SESSION!ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ë»ï¿½ï¿½Õ´Ï´ï¿½...
+    echo ÃÖ±Ù !USE_SESSION!°³ ¼¼¼ÇÀ» °Ë»öÇÕ´Ï´Ù...
     set "FOUND_COUNT=0"
     for /f "tokens=1,* delims==" %%A in ('powershell -NoProfile -ExecutionPolicy Bypass -File "!PS_SCRIPT!" "!CLAUDE_CONFIG_DIR!" "!LAST_PATH!" "!USE_SESSION!"') do (
         if "%%A"=="S_COUNT" set "FOUND_COUNT=%%B"
@@ -322,19 +322,19 @@ if not "!S_ID!"=="" (
     )
 
     if "!FOUND_COUNT!"=="0" (
-        echo ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½.
+        echo °Ë»ö °á°ú°¡ ¾ø½À´Ï´Ù.
         goto :ASK_SESSION
     )
 
     echo --------------------------------------------------
     for /l %%I in (1,1,!FOUND_COUNT!) do (
-        echo [%%I] ï¿½Ã°ï¿½: !M_TIME_%%I! ^| ï¿½Ô·ï¿½: !M_USER_%%I! ^| ï¿½ï¿½ï¿½ï¿½: !M_ASSISTANT_%%I!
+        echo [%%I] ½Ã°£: !M_TIME_%%I! ^| ÀÔ·Â: !M_USER_%%I! ^| ÀÀ´ä: !M_ASSISTANT_%%I!
     )
     echo --------------------------------------------------
 
     :SELECT_SESSION
     set "SEL_INDEX="
-    set /p SEL_INDEX="ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È£ï¿½ï¿½ ï¿½Ô·ï¿½ï¿½Ï¼ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿? c): "
+    set /p SEL_INDEX="ÀÌ¾î¼­ ÁøÇàÇÒ ¹øÈ£¸¦ ÀÔ·ÂÇÏ¼¼¿ä (Ãë¼Ò: c): "
     if /i "!SEL_INDEX!"=="c" goto :ASK_SESSION
 
     set "SELECTED_ID="
@@ -346,24 +346,24 @@ if not "!S_ID!"=="" (
         set "RESUME_ARG=--resume !SELECTED_ID!"
         goto :RUN_CLAUDE
     ) else (
-        echo ï¿½ß¸ï¿½ï¿½ï¿½ ï¿½ï¿½È£ï¿½Ô´Ï´ï¿½.
+        echo Àß¸øµÈ ¹øÈ£ÀÔ´Ï´Ù.
         goto :SELECT_SESSION
     )
 ) else (
-    echo [ï¿½È³ï¿½] ï¿½ß°ßµï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½.
+    echo [¾È³»] ¹ß°ßµÈ ¼¼¼Ç Á¤º¸ ¾øÀ½.
 )
 
 :RUN_CLAUDE
-:: 6. Claude ï¿½ï¿½ï¿½ï¿½
+:: 6. Claude ½ÇÇà
 del "!CONFIG_BASE_DIR!\temp_session.txt" 2>nul
 echo.
-echo "!LAST_PATH!" ï¿½ï¿½Ä¡ï¿½ï¿½ï¿½ï¿½ Claudeï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½...
+echo "!LAST_PATH!" À§Ä¡¿¡¼­ Claude¸¦ ½ÇÇàÇÕ´Ï´Ù...
 echo.
 
 cd /d "!LAST_PATH!"
 claude !RESUME_ARG!
 
-:: ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿?MCP ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½È­
+:: Á¾·á ÈÄ aliasÀÇ mcp.jsonÀ» ±Û·Î¹ú·Î ¿ªµ¿±âÈ­
 if exist "!CLAUDE_CONFIG_DIR!\mcp.json" (
     copy /Y "!CLAUDE_CONFIG_DIR!\mcp.json" "!GLOBAL_CLAUDE_DIR!\mcp.json" >nul 2>&1
 )
@@ -372,19 +372,19 @@ pause
 goto :EOF
 
 :: ==================================================
-:: ï¿½ï¿½ï¿½É¾ï¿½ Ã³ï¿½ï¿½ ï¿½Ô¼ï¿½ ï¿½ï¿½ï¿½ï¿½
+:: ¸í·É¾î Ã³¸® ÇÔ¼ö Á¤ÀÇ
 :: ==================================================
 
 :DO_VERSION
-echo Claude Code ï¿½ï¿½ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½: !VERSION!
+echo Claude Code »ç¿ëÀÚ µµ±¸ ¹öÀü: !VERSION!
 goto :EOF
 
 :DO_LOGIN
-set /p NEW_ALIAS="ï¿½Î±ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Aliasï¿½ï¿½ ï¿½Ô·ï¿½ï¿½Ï¼ï¿½ï¿½ï¿½: "
+set /p NEW_ALIAS="·Î±×ÀÎÇÒ °èÁ¤ Alias¸¦ ÀÔ·ÂÇÏ¼¼¿ä: "
 if not exist "!CONFIG_BASE_DIR!\!NEW_ALIAS!" mkdir "!CONFIG_BASE_DIR!\!NEW_ALIAS!"
 set "CLAUDE_CONFIG_DIR=!CONFIG_BASE_DIR!\!NEW_ALIAS!"
 echo !NEW_ALIAS!>"!LAST_ALIAS_FILE!"
-echo [ï¿½È³ï¿½] '!NEW_ALIAS!' ï¿½ï¿½ï¿½ï¿½ Alias ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ È¯ï¿½æ¿¡ï¿½ï¿½ ï¿½Î±ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
+echo [¾È³»] '!NEW_ALIAS!' °èÁ¤ Alias ÇÁ·ÎÆÄÀÏ È¯°æ¿¡¼­ ·Î±×ÀÎÀ» ÁøÇàÇÕ´Ï´Ù.
 claude login
 goto :EOF
 
@@ -392,18 +392,18 @@ goto :EOF
 set "SRC_ALIAS=!ARG2!"
 set "NEW_ALIAS=!ARG3!"
 if "!SRC_ALIAS!"=="" (
-    set /p SRC_ALIAS="ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Aliasï¿½ï¿½ ï¿½Ô·ï¿½ï¿½Ï¼ï¿½ï¿½ï¿½: "
+    set /p SRC_ALIAS="¿øº» °èÁ¤ Alias¸¦ ÀÔ·ÂÇÏ¼¼¿ä: "
 )
 if "!NEW_ALIAS!"=="" (
-    set /p NEW_ALIAS="ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Aliasï¿½ï¿½ ï¿½Ô·ï¿½ï¿½Ï¼ï¿½ï¿½ï¿½: "
+    set /p NEW_ALIAS="º¹Á¦ÇÒ ½Å±Ô °èÁ¤ Alias¸¦ ÀÔ·ÂÇÏ¼¼¿ä: "
 )
 
 if not exist "!CONFIG_BASE_DIR!\!SRC_ALIAS!" (
-    echo [ï¿½ï¿½ï¿½ï¿½] ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ '!SRC_ALIAS!'ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê½ï¿½ï¿½Ï´ï¿½.
+    echo [¿À·ù] ¿øº» °èÁ¤ '!SRC_ALIAS!'ÀÌ(°¡) Á¸ÀçÇÏÁö ¾Ê½À´Ï´Ù.
     goto :EOF
 )
 if exist "!CONFIG_BASE_DIR!\!NEW_ALIAS!" (
-    echo [ï¿½ï¿½ï¿½ï¿½] ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½ '!NEW_ALIAS!'ï¿½ï¿½ ï¿½Ì¹ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
+    echo [¿À·ù] ´ë»ó °èÁ¤ '!NEW_ALIAS!'ÀÌ(°¡) ÀÌ¹Ì Á¸ÀçÇÕ´Ï´Ù.
     goto :EOF
 )
 
@@ -417,40 +417,40 @@ for %%F in ("!CONFIG_BASE_DIR!\!SRC_ALIAS!\*") do (
 set "CLAUDE_CONFIG_DIR=!CONFIG_BASE_DIR!\!NEW_ALIAS!"
 echo !NEW_ALIAS!>"!LAST_ALIAS_FILE!"
 
-echo [ï¿½È³ï¿½] '!SRC_ALIAS!' ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¿ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ '!NEW_ALIAS!'ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ß½ï¿½ï¿½Ï´ï¿½.
+echo [¾È³»] '!SRC_ALIAS!' °èÁ¤ÀÇ ¼³Á¤ ÆÄÀÏÀ» º¹Á¦ÇÏ¿© ½Å±Ô °èÁ¤ '!NEW_ALIAS!'À»(¸¦) »ý¼ºÇß½À´Ï´Ù.
 goto :EOF
 
 :DO_RESET
-echo claude_configs ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½ ï¿½Ê±ï¿½È­ï¿½Õ´Ï´ï¿½.
+echo claude_configs Æú´õÀÇ ¸ðµç µ¥ÀÌÅÍ¸¦ ÃÊ±âÈ­ÇÕ´Ï´Ù.
 if exist "!CONFIG_BASE_DIR!" rmdir /s /q "!CONFIG_BASE_DIR!"
 mkdir "!CONFIG_BASE_DIR!"
-echo ï¿½Ê±ï¿½È­ï¿½ï¿½ ï¿½Ï·ï¿½Ç¾ï¿½ï¿½ï¿½ï¿½Ï´ï¿?
+echo ÃÊ±âÈ­°¡ ¿Ï·áµÇ¾ú½À´Ï´Ù.
 goto :EOF
 
 :DO_LOGOUT
 set "LOGOUT_ALIAS=!ARG2!"
 if "!LOGOUT_ALIAS!"=="" (
-    echo [ï¿½ï¿½ï¿½ï¿½] ï¿½Î±×¾Æ¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Aliasï¿½ï¿½ ï¿½Ô·ï¿½ï¿½Ï¼ï¿½ï¿½ï¿½. ï¿½ï¿½: %~n0 logout a
+    echo [¿À·ù] ·Î±×¾Æ¿ôÇÒ °èÁ¤ Alias¸¦ ÀÔ·ÂÇÏ¼¼¿ä. ¿¹: %~n0 logout a
     goto :EOF
 )
 if exist "!CONFIG_BASE_DIR!\!LOGOUT_ALIAS!" (
     rmdir /s /q "!CONFIG_BASE_DIR!\!LOGOUT_ALIAS!"
-    echo [ï¿½È³ï¿½] '!LOGOUT_ALIAS!' ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ç¾ï¿½ï¿½ï¿½ï¿½Ï´ï¿½.
+    echo [¾È³»] '!LOGOUT_ALIAS!' °èÁ¤ Á¤º¸°¡ »èÁ¦µÇ¾ú½À´Ï´Ù.
     if exist "!LAST_ALIAS_FILE!" (
         set /p CUR_LAST_ALIAS=<"!LAST_ALIAS_FILE!"
         if "!CUR_LAST_ALIAS!"=="!LOGOUT_ALIAS!" del "!LAST_ALIAS_FILE!"
     )
 ) else (
-    echo [ï¿½ï¿½ï¿½ï¿½] '!LOGOUT_ALIAS!' ï¿½ï¿½ï¿½ï¿½ Aliasï¿½ï¿½ Ã£ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½.
+    echo [¿À·ù] '!LOGOUT_ALIAS!' °èÁ¤ Alias¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù.
 )
 goto :EOF
 
 :DO_INFO
 echo ==================================================
-echo                ï¿½ï¿½ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿?
+echo                »ç¿ëÀÚ °èÁ¤ Á¤º¸ ¸ñ·Ï
 echo ==================================================
 if not exist "!CONFIG_BASE_DIR!" (
-    echo ï¿½ï¿½ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½.
+    echo »ç¿ëÀÚ °èÁ¤ Á¤º¸°¡ ¾ø½À´Ï´Ù.
     goto :EOF
 )
 
@@ -458,7 +458,7 @@ set "GLOBAL_LAST_PATH="
 if exist "!GLOBAL_PATH_FILE!" set /p GLOBAL_LAST_PATH=<"!GLOBAL_PATH_FILE!"
 
 if not "!GLOBAL_LAST_PATH!"=="" (
-    echo [ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿?: !GLOBAL_LAST_PATH!
+    echo [Àü¿ª ¸¶Áö¸· °æ·Î]: !GLOBAL_LAST_PATH!
     echo --------------------------------------------------
 )
 
@@ -473,11 +473,11 @@ for /d %%D in ("!CONFIG_BASE_DIR!\*") do (
             if "%%A"=="ACC_EMAIL" if not "%%B"=="" set "A_EMAIL=%%B"
         )
 
-        set "A_PATH=ï¿½ï¿½ï¿½ï¿½ï¿½Î¾ï¿½ï¿½ï¿½"
+        set "A_PATH=¼³Á¤µÇÁö ¾ÊÀ½"
         if exist "%%D\last_path.txt" set /p A_PATH=<"%%D\last_path.txt"
 
-        echo [ï¿½ï¿½ï¿½ï¿½ Alias: %%~nxD] !A_NAME! - !A_EMAIL!
-        echo  - ï¿½ï¿½ï¿? !A_PATH!
+        echo [°èÁ¤ Alias: %%~nxD] !A_NAME! - !A_EMAIL!
+        echo  - °æ·Î: !A_PATH!
 
         set "SI="
         for /f "tokens=1,* delims==" %%A in ('type "!CONFIG_BASE_DIR!\temp_info.txt"') do (
@@ -487,9 +487,9 @@ for /d %%D in ("!CONFIG_BASE_DIR!\*") do (
             )
         )
         if "!SI!"=="" (
-            echo  - ï¿½ï¿½ï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+            echo  - ¼¼¼Ç: ¾Ë ¼ö ¾øÀ½
         ) else (
-            echo  - ï¿½ï¿½ï¿½ï¿½: !SI!
+            echo  - ¼¼¼Ç: !SI!
         )
         echo.
     )
@@ -566,35 +566,31 @@ goto :EOF
 
 :SHOW_HELP
 echo ==================================================
-echo                Claude Code ï¿½ï¿½ï¿½ï¿½ï¿?v!VERSION!
+echo                Claude Code »ç¿ëÀÚ µµ±¸ v!VERSION!
 echo ==================================================
-echo [ï¿½ï¿½ï¿½ï¿½]
-echo  %~n0                        : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Î¿ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½
-echo  %~n0 login                  : ï¿½ï¿½ï¿½Î¿ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½Î±ï¿½ï¿½ï¿½
-echo  %~n0 copy [ï¿½ï¿½ï¿½ï¿½Alias] [ï¿½Å±ï¿½Alias] : ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¿ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
-echo  %~n0 logout [Alias]         : Æ¯ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Alias ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
-echo  %~n0 reset                  : ï¿½ï¿½ï¿½ï¿½ï¿?ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿? ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê±ï¿½È­
-echo  %~n0 remote [Alias] [path]   : alias profile + 'claude --remote-control' background cmd window (claude.ai/code)
-echo  %~n0 info                   : ï¿½ï¿½ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿?ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿?
-echo  %~n0 version                : ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Å©ï¿½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿?
-echo  %~n0 [ï¿½ï¿½ï¿½ï¿½ Alias]           : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿?ï¿½Ç´ï¿½ ï¿½ï¿½Ã¼ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Î¿ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½
-echo  %~n0 [ï¿½ï¿½ï¿?                 : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Î¿ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½
-echo  %~n0 [ï¿½ï¿½ï¿½ï¿½ Alias] [ï¿½ï¿½ï¿?    : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Î¿ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½
-echo  %~n0 -h, --help             : ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Ç¥ï¿½ï¿½
+echo [»ç¿ë¹ý]
+echo  %~n0                                : ¸¶Áö¸· »ç¿ë ÇÁ·ÎÆÄÀÏ¡¤°æ·Î¿¡¼­ ½ÇÇà
+echo  %~n0 login                          : »õ·Î¿î °èÁ¤ ÇÁ·ÎÆÄÀÏ »ý¼º ¹× ·Î±×ÀÎ
+echo  %~n0 copy [¿øº»Alias] [½Å±ÔAlias]   : ±âÁ¸ °èÁ¤ ¼³Á¤À» º¹Á¦ÇÏ¿© ½Å±Ô °èÁ¤ »ý¼º
+echo  %~n0 logout [Alias]                 : Æ¯Á¤ °èÁ¤ Alias »èÁ¦
+echo  %~n0 reset                          : ¸ðµç °èÁ¤¡¤°æ·Î¡¤¼³Á¤ ÃÊ±âÈ­
+echo  %~n0 remote [Alias] [°æ·Î]          : alias ÇÁ·ÎÆÄÀÏ·Î ¹é±×¶ó¿îµå 'claude --remote-control' ½ÇÇà (claude.ai/code)
+echo  %~n0 info                           : »ç¿ëÀÚ °èÁ¤ ¹× ¼¼¼Ç Á¤º¸ Ãâ·Â
+echo  %~n0 version                        : µµ±¸ ¹öÀü Ãâ·Â
+echo  %~n0 [°èÁ¤ Alias]                   : ÇØ´ç ÇÁ·ÎÆÄÀÏ·Î ¸¶Áö¸· °æ·Î¿¡¼­ ½ÇÇà
+echo  %~n0 [°æ·Î]                         : ¸¶Áö¸· ÇÁ·ÎÆÄÀÏ·Î ÁöÁ¤ °æ·Î¿¡¼­ ½ÇÇà
+echo  %~n0 [°èÁ¤ Alias] [°æ·Î]            : ÁöÁ¤ ÇÁ·ÎÆÄÀÏ¡¤°æ·Î¿¡¼­ ½ÇÇà
+echo  %~n0 -h, --help                     : µµ¿ò¸» Ãâ·Â
 echo.
-echo [ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½]
-echo  - ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿? ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ È°ï¿½ï¿½ï¿½Ï¿ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ È¯ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
-echo  - ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿? copy ï¿½ï¿½ï¿½É¾î¸¦ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¸é¼­ ï¿½Û¾ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ð¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Î¿ï¿½ È¯ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
-echo  - ï¿½Û¾ï¿½ ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Û¾ï¿½ ï¿½ï¿½Î¸ï¿?ï¿½ï¿½ï¿?
-echo  - ï¿½Ã·ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?ï¿½ï¿½ï¿½Í¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(Junction)ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¿ï¿½ ï¿½Ú¿ï¿½ ï¿½ï¿½ï¿½ï¿½
-echo  - ï¿½Úµï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ô·ï¿½ ï¿½ï¿½ï¿½ï¿½ Claudeï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ jsonl ï¿½ï¿½ï¿½Ï¿ï¿½ï¿½ï¿½ ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Û¾ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+echo [È¯°æ º¯¼ö]
+echo  - CLAUDE_CONFIG_DIR : È°¼º ÇÁ·ÎÆÄÀÏ µð·ºÅÍ¸®·Î ¼³Á¤µÊ
 echo.
-echo [ï¿½ï¿½ï¿½ï¿½]
-echo  %~n0 login                  -^> ï¿½ï¿½ï¿½ï¿½ Alias aï¿½ï¿½ ï¿½Î±ï¿½ï¿½ï¿½
-echo  %~n0 copy a a1              -^> a ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¿ï¿½ ï¿½Û¾ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ a1 ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
-echo  %~n0 a D:\workspace         -^> a ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ D:\workspace ï¿½ï¿½ï¿½ï¿½ ï¿½Û¾ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½Úµï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
-echo  %~n0 a1 E:\project          -^> a1 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ E:\project ï¿½ï¿½ï¿½ï¿½ ï¿½Û¾ï¿½
-echo  %~n0 logout a1              -^> a1 ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
-echo  %~n0 reset                  -^> ï¿½ï¿½Ã¼ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê±ï¿½È­
+echo [¿¹½Ã]
+echo  %~n0 login                  -^> °èÁ¤ Alias a ·Î±×ÀÎ
+echo  %~n0 copy a a1              -^> a ¼³Á¤ º¹Á¦, a1 »ý¼º
+echo  %~n0 a D:\workspace         -^> a ÇÁ·ÎÆÄÀÏ·Î D:\workspace ÀÛ¾÷
+echo  %~n0 a1 E:\project          -^> a1 ÇÁ·ÎÆÄÀÏ·Î E:\project ÀÛ¾÷
+echo  %~n0 logout a1              -^> a1 °èÁ¤ »èÁ¦
+echo  %~n0 reset                  -^> ÀüÃ¼ ÃÊ±âÈ­
 echo ==================================================
 goto :EOF
