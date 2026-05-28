@@ -6,13 +6,14 @@
 :: ==================================================
 setlocal enabledelayedexpansion
 
-set "VERSION=1.0.2"
+set "VERSION=1.1.0"
 
 :: 기본 경로 설정
 set "CONFIG_BASE_DIR=%~dp0claude_configs"
 if not exist "!CONFIG_BASE_DIR!" mkdir "!CONFIG_BASE_DIR!"
 set "GLOBAL_PATH_FILE=!CONFIG_BASE_DIR!\last_path.txt"
 set "LAST_ALIAS_FILE=!CONFIG_BASE_DIR!\last_alias.txt"
+set "PATH_ALIAS_FILE=!CONFIG_BASE_DIR!\path_aliases.txt"
 set "PS_SCRIPT=!CONFIG_BASE_DIR!\get_session.ps1"
 set "MERGE_SCRIPT=!CONFIG_BASE_DIR!\merge_settings.ps1"
 set "ARG1=%~1"
@@ -20,6 +21,9 @@ set "ARG2=%~2"
 set "ARG3=%~3"
 set "NEW_PATH="
 set "TARGET_ALIAS="
+
+:: 예약어 (계정/경로 alias 로 사용 불가)
+set "RESERVED_WORDS=login copy reset logout remote info version path help"
 
 :: PowerShell 스크립트 생성
 (
@@ -178,23 +182,39 @@ if /i "!ARG1!"=="logout" goto :DO_LOGOUT
 if /i "!ARG1!"=="remote" goto :DO_REMOTE
 if /i "!ARG1!"=="info" goto :DO_INFO
 if /i "!ARG1!"=="version" goto :DO_VERSION
+if /i "!ARG1!"=="path" goto :DO_PATH
 
 :START_PARSE
-:: 2. 인자 분석: 경로 / 계정 Alias 자동 판별
+:: 2. 인자 분석: 경로 / 계정 Alias / 경로 Alias
 if not "!ARG1!"=="" (
     if exist "!ARG1!\" (
         set "NEW_PATH=!ARG1!"
-    ) else (
-        set "TARGET_ALIAS=!ARG1!"
-        if not "!ARG2!"=="" (
-            if exist "!ARG2!\" (
-                set "NEW_PATH=!ARG2!"
+        goto :AFTER_PARSE
+    )
+    if not exist "!CONFIG_BASE_DIR!\!ARG1!" (
+        call :GET_PATH_ALIAS "!ARG1!"
+        if not "!RESOLVED_PATH!"=="" (
+            if exist "!RESOLVED_PATH!\" (
+                set "NEW_PATH=!RESOLVED_PATH!"
+                goto :AFTER_PARSE
+            )
+        )
+    )
+    set "TARGET_ALIAS=!ARG1!"
+    if not "!ARG2!"=="" (
+        if exist "!ARG2!\" (
+            set "NEW_PATH=!ARG2!"
+        ) else (
+            call :GET_PATH_ALIAS "!ARG2!"
+            if not "!RESOLVED_PATH!"=="" (
+                if exist "!RESOLVED_PATH!\" set "NEW_PATH=!RESOLVED_PATH!"
             )
         )
     )
 )
+:AFTER_PARSE
 
-:: 3. 프로필 결정
+:: 3. 프로파일 결정
 if "!TARGET_ALIAS!"=="" (
     if exist "!LAST_ALIAS_FILE!" set /p TARGET_ALIAS=<"!LAST_ALIAS_FILE!"
 )
@@ -372,8 +392,27 @@ pause
 goto :EOF
 
 :: ==================================================
-:: 명령어 처리 함수 정의
+:: 명령어 처리 함수 모음
 :: ==================================================
+
+:CHECK_RESERVED
+:: arg1: 검사할 이름, 결과: RESERVED=1 이면 예약어
+set "RESERVED=0"
+for %%R in (%RESERVED_WORDS%) do (
+    if /i "%~1"=="%%R" set "RESERVED=1"
+)
+if /i "%~1"=="-h" set "RESERVED=1"
+if /i "%~1"=="--help" set "RESERVED=1"
+goto :EOF
+
+:GET_PATH_ALIAS
+:: arg1: alias 이름, 결과: RESOLVED_PATH
+set "RESOLVED_PATH="
+if not exist "!PATH_ALIAS_FILE!" goto :EOF
+for /f "usebackq tokens=1,* delims==" %%A in ("!PATH_ALIAS_FILE!") do (
+    if /i "%%A"=="%~1" set "RESOLVED_PATH=%%B"
+)
+goto :EOF
 
 :DO_VERSION
 echo Claude Code 사용자 도구 버전: !VERSION!
@@ -381,6 +420,15 @@ goto :EOF
 
 :DO_LOGIN
 set /p NEW_ALIAS="로그인할 계정 Alias를 입력하세요: "
+if "!NEW_ALIAS!"=="" (
+    echo [오류] Alias가 비어있습니다.
+    goto :EOF
+)
+call :CHECK_RESERVED "!NEW_ALIAS!"
+if "!RESERVED!"=="1" (
+    echo [오류] '!NEW_ALIAS!'은(는) 예약어이므로 계정 Alias로 사용할 수 없습니다.
+    goto :EOF
+)
 if not exist "!CONFIG_BASE_DIR!\!NEW_ALIAS!" mkdir "!CONFIG_BASE_DIR!\!NEW_ALIAS!"
 set "CLAUDE_CONFIG_DIR=!CONFIG_BASE_DIR!\!NEW_ALIAS!"
 echo !NEW_ALIAS!>"!LAST_ALIAS_FILE!"
@@ -396,6 +444,12 @@ if "!SRC_ALIAS!"=="" (
 )
 if "!NEW_ALIAS!"=="" (
     set /p NEW_ALIAS="복제할 신규 계정 Alias를 입력하세요: "
+)
+
+call :CHECK_RESERVED "!NEW_ALIAS!"
+if "!RESERVED!"=="1" (
+    echo [오류] '!NEW_ALIAS!'은(는) 예약어이므로 계정 Alias로 사용할 수 없습니다.
+    goto :EOF
 )
 
 if not exist "!CONFIG_BASE_DIR!\!SRC_ALIAS!" (
@@ -443,6 +497,53 @@ if exist "!CONFIG_BASE_DIR!\!LOGOUT_ALIAS!" (
 ) else (
     echo [오류] '!LOGOUT_ALIAS!' 계정 Alias를 찾을 수 없습니다.
 )
+goto :EOF
+
+:DO_PATH
+set "PA_NAME=!ARG2!"
+set "PA_DIR=!ARG3!"
+if "!PA_NAME!"=="" goto :LIST_PATH
+call :CHECK_RESERVED "!PA_NAME!"
+if "!RESERVED!"=="1" (
+    echo [오류] '!PA_NAME!'은(는) 예약어이므로 경로 Alias로 사용할 수 없습니다.
+    goto :EOF
+)
+if "!PA_DIR!"=="" (
+    echo [오류] 경로가 필요합니다. 예: %~n0 path !PA_NAME! C:\path\to\dir
+    goto :EOF
+)
+if not exist "!PA_DIR!\" (
+    echo [오류] 경로 '!PA_DIR!'가 존재하지 않습니다.
+    goto :EOF
+)
+for %%I in ("!PA_DIR!") do set "PA_ABS=%%~fI"
+set "TMP_PA=!CONFIG_BASE_DIR!\path_aliases.tmp"
+break > "!TMP_PA!"
+if exist "!PATH_ALIAS_FILE!" (
+    for /f "usebackq tokens=1,* delims==" %%A in ("!PATH_ALIAS_FILE!") do (
+        if /i not "%%A"=="!PA_NAME!" (
+            if not "%%A"=="" echo %%A=%%B>>"!TMP_PA!"
+        )
+    )
+)
+echo !PA_NAME!=!PA_ABS!>>"!TMP_PA!"
+move /Y "!TMP_PA!" "!PATH_ALIAS_FILE!" >nul
+echo [안내] 경로 Alias '!PA_NAME!' -^> '!PA_ABS!' 등록 완료.
+goto :EOF
+
+:LIST_PATH
+echo ==================================================
+echo               등록된 경로 Alias 목록
+echo ==================================================
+if not exist "!PATH_ALIAS_FILE!" (
+    echo 등록된 경로 Alias가 없습니다.
+    echo 예: %~n0 path tabmerge C:\backup\C-Lab\gitsrc\TabMerge
+    goto :EOF
+)
+for /f "usebackq tokens=1,* delims==" %%A in ("!PATH_ALIAS_FILE!") do (
+    echo   %%A -^> %%B
+)
+echo ==================================================
 goto :EOF
 
 :DO_INFO
@@ -531,7 +632,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "!MERGE_SCRIPT!" "!CLAUDE_CO
 set "PROFILE_PATH_FILE=!CLAUDE_CONFIG_DIR!\last_path.txt"
 set "TARGET_PATH="
 if not "!REMOTE_PATH!"=="" (
-    if exist "!REMOTE_PATH!\" set "TARGET_PATH=!REMOTE_PATH!"
+    if exist "!REMOTE_PATH!\" (
+        set "TARGET_PATH=!REMOTE_PATH!"
+    ) else (
+        call :GET_PATH_ALIAS "!REMOTE_PATH!"
+        if not "!RESOLVED_PATH!"=="" (
+            if exist "!RESOLVED_PATH!\" set "TARGET_PATH=!RESOLVED_PATH!"
+        )
+    )
 )
 if "!TARGET_PATH!"=="" (
     if exist "!PROFILE_PATH_FILE!" set /p TARGET_PATH=<"!PROFILE_PATH_FILE!"
@@ -574,23 +682,29 @@ echo  %~n0 login                          : 새로운 계정 프로파일 생성 및 로그인
 echo  %~n0 copy [원본Alias] [신규Alias]   : 기존 계정 설정을 복제하여 신규 계정 생성
 echo  %~n0 logout [Alias]                 : 특정 계정 Alias 삭제
 echo  %~n0 reset                          : 모든 계정·경로·설정 초기화
-echo  %~n0 remote [Alias] [경로]          : alias 프로파일로 백그라운드 'claude --remote-control' 실행 (claude.ai/code)
+echo  %~n0 remote [Alias] [경로^|경로Alias] : alias 프로파일로 백그라운드 'claude --remote-control' 실행
 echo  %~n0 info                           : 사용자 계정 및 세션 정보 출력
 echo  %~n0 version                        : 도구 버전 출력
+echo  %~n0 path                           : 등록된 경로 Alias 목록 출력
+echo  %~n0 path [이름] [경로]             : 경로 Alias 등록
 echo  %~n0 [계정 Alias]                   : 해당 프로파일로 마지막 경로에서 실행
-echo  %~n0 [경로]                         : 마지막 프로파일로 지정 경로에서 실행
-echo  %~n0 [계정 Alias] [경로]            : 지정 프로파일·경로에서 실행
-echo  %~n0 -h, --help                     : 도움말 출력
+echo  %~n0 [경로^|경로Alias]              : 마지막 프로파일로 지정 경로/경로Alias 에서 실행
+echo  %~n0 [계정 Alias] [경로^|경로Alias] : 지정 프로파일·경로/경로Alias 에서 실행
+echo  %~n0 -h, --help                     : 도움말
+echo.
+echo [예약어 - 계정/경로 Alias 로 사용 불가]
+echo  login, copy, reset, logout, remote, info, version, path, help, -h, --help
 echo.
 echo [환경 변수]
 echo  - CLAUDE_CONFIG_DIR : 활성 프로파일 디렉터리로 설정됨
 echo.
 echo [예시]
-echo  %~n0 login                  -^> 계정 Alias a 로그인
-echo  %~n0 copy a a1              -^> a 설정 복제, a1 생성
-echo  %~n0 a D:\workspace         -^> a 프로파일로 D:\workspace 작업
-echo  %~n0 a1 E:\project          -^> a1 프로파일로 E:\project 작업
-echo  %~n0 logout a1              -^> a1 계정 삭제
-echo  %~n0 reset                  -^> 전체 초기화
+echo  %~n0 login                              -^> 계정 Alias a 로그인
+echo  %~n0 copy a a1                          -^> a 설정 복제, a1 생성
+echo  %~n0 a D:\workspace                     -^> a 프로파일로 D:\workspace 작업
+echo  %~n0 path tabmerge C:\backup\C-Lab\gitsrc\TabMerge -^> 경로 Alias 등록
+echo  %~n0 a tabmerge                         -^> a 프로파일로 tabmerge 경로 Alias 위치에서 실행
+echo  %~n0 logout a1                          -^> a1 계정 삭제
+echo  %~n0 reset                              -^> 전체 초기화
 echo ==================================================
 goto :EOF
