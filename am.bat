@@ -6,7 +6,7 @@
 :: ==================================================
 setlocal enabledelayedexpansion
 
-set "VERSION=1.1.11"
+set "VERSION=1.1.12"
 
 :: 기본 경로 설정
 set "CONFIG_BASE_DIR=%~dp0claude_configs"
@@ -23,7 +23,7 @@ set "NEW_PATH="
 set "TARGET_ALIAS="
 
 :: 예약어 (계정/경로 alias 로 사용 불가)
-set "RESERVED_WORDS=login copy reset logout remote account alias version path help install uninstall"
+set "RESERVED_WORDS=login copy reset logout remote close account alias version path help install uninstall"
 
 :: PowerShell 스크립트 생성
 (
@@ -182,6 +182,7 @@ if /i "!ARG1!"=="copy" goto :DO_COPY
 if /i "!ARG1!"=="reset" goto :DO_RESET
 if /i "!ARG1!"=="logout" goto :DO_LOGOUT
 if /i "!ARG1!"=="remote" goto :DO_REMOTE
+if /i "!ARG1!"=="close" goto :DO_CLOSE
 if /i "!ARG1!"=="account" goto :DO_ACCOUNT
 if /i "!ARG1!"=="version" goto :DO_VERSION
 if /i "!ARG1!"=="path" goto :DO_PATH
@@ -759,6 +760,21 @@ echo [done] https://claude.ai/code remote control available.
 echo [info] window title: !WIN_TITLE!
 goto :EOF
 
+:DO_CLOSE
+set "CLOSE_ALIAS=!ARG2!"
+if "!CLOSE_ALIAS!"=="" (
+    echo [error] alias required. example: %~n0 close a
+    goto :EOF
+)
+set "TITLE_PATTERN=claude-remote-!CLOSE_ALIAS!-*"
+taskkill /F /FI "WINDOWTITLE eq !TITLE_PATTERN!" >nul 2>&1
+if errorlevel 1 (
+    echo [info] no remote window found for alias '!CLOSE_ALIAS!'
+) else (
+    echo [done] closed remote windows for alias '!CLOSE_ALIAS!'
+)
+goto :EOF
+
 :SHOW_HELP
 echo ==================================================
 echo                Claude Code 사용자 도구 v!VERSION!
@@ -772,6 +788,7 @@ echo  %~n0 copy [원본Alias] [신규Alias]     : 기존 계정 설정을 복제하여 신규 계�
 echo  %~n0 logout [Alias]                   : 특정 계정 Alias 삭제
 echo  %~n0 reset                            : 모든 계정·경로·설정 초기화
 echo  %~n0 remote [Alias] [경로^|경로Alias]  : alias 프로파일로 백그라운드 'claude --remote-control' 실행
+echo  %~n0 close [Alias]                    : 해당 alias 로 열려있는 remote 창 모두 종료
 echo  %~n0 account                          : 사용자 계정 및 세션 정보 출력
 echo  %~n0 alias                            : 등록된 계정/경로 Alias 목록 출력
 echo  %~n0 version                          : 도구 버전 출력
@@ -783,7 +800,7 @@ echo  %~n0 [계정 Alias] [경로^|경로Alias]   : 지정 프로파일·경로/경로Alias 에서
 echo  %~n0 -h, --help                       : 도움말
 echo.
 echo [예약어 - 계정/경로 Alias 로 사용 불가]
-echo  login, copy, reset, logout, remote, account, alias, version, path, install, uninstall, help, -h, --help
+echo  login, copy, reset, logout, remote, close, account, alias, version, path, install, uninstall, help, -h, --help
 echo.
 echo [환경 변수]
 echo  - CLAUDE_CONFIG_DIR : 활성 프로파일 디렉터리로 설정됨

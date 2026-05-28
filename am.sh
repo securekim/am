@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.1.11"
+VERSION="1.1.12"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,7 +19,7 @@ LAST_ALIAS_FILE="${CONFIG_BASE_DIR}/last_alias.txt"
 PATH_ALIAS_FILE="${CONFIG_BASE_DIR}/path_aliases.txt"
 
 # 예약어 (계정/경로 alias 로 사용 불가)
-RESERVED_WORDS="login copy reset logout remote account alias version path help install uninstall"
+RESERVED_WORDS="login copy reset logout remote close account alias version path help install uninstall"
 
 is_reserved() {
     local w="$1"
@@ -570,16 +570,17 @@ do_remote() {
         tmux kill-session -t "$session_name" 2>/dev/null || true
     fi
 
-    local cmd
-    cmd="claude --remote-control $(printf '%q' "$folder")"
+    # bash -lc so PATH includes claude (login shell sources profile/rc).
+    local remote_cmd
+    printf -v remote_cmd 'claude --remote-control %q' "$folder"
     echo "[원격] alias='${REMOTE_ALIAS}' path='${target_path}' folder='${folder}'"
     echo "[원격] tmux session='${session_name}'"
     echo "[원격] CLAUDE_CONFIG_DIR='${CLAUDE_CONFIG_DIR}'"
-    echo "[원격] cmd: ${cmd}"
+    echo "[원격] cmd: ${remote_cmd}"
 
     tmux new-session -d -s "$session_name" -c "$target_path" \
         -e "CLAUDE_CONFIG_DIR=${CLAUDE_CONFIG_DIR}" \
-        "$cmd"
+        bash -lc "$remote_cmd"
     local rc=$?
     if [[ $rc -ne 0 ]]; then
         echo "[오류] tmux new-session 실패 (rc=${rc})."
@@ -587,6 +588,35 @@ do_remote() {
     fi
     echo "[완료] https://claude.ai/code 에서 원격 제어 가능."
     echo "[안내] 부착: tmux attach -t ${session_name}"
+    echo "[안내] 종료: ${SCRIPT_NAME} close ${REMOTE_ALIAS}"
+}
+
+do_close() {
+    local close_alias="$ARG2"
+    if [[ -z "$close_alias" ]]; then
+        echo "[오류] 계정 Alias 필수. 예: ${SCRIPT_NAME} close a"
+        return 1
+    fi
+    if ! command -v tmux >/dev/null 2>&1; then
+        echo "[오류] tmux 미설치."
+        return 1
+    fi
+    local prefix="claude-remote-${close_alias}-"
+    local sessions
+    sessions=$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep -F "$prefix" || true)
+    if [[ -z "$sessions" ]]; then
+        echo "[안내] '${close_alias}' alias 로 열려있는 remote 세션 없음."
+        return 0
+    fi
+    local s killed=0
+    while IFS= read -r s; do
+        [[ -z "$s" ]] && continue
+        if tmux kill-session -t "$s" 2>/dev/null; then
+            echo "[완료] tmux 세션 종료: $s"
+            killed=$((killed+1))
+        fi
+    done <<< "$sessions"
+    echo "[완료] 총 ${killed}개 세션 종료됨."
 }
 
 do_path() {
@@ -718,6 +748,7 @@ show_help() {
  ${SCRIPT_NAME} logout [Alias]           : 특정 계정 Alias 삭제
  ${SCRIPT_NAME} reset                    : 모든 계정·경로·설정 초기화
  ${SCRIPT_NAME} remote [Alias] [경로]    : alias 프로파일로 tmux 백그라운드 'claude --remote-control' 실행 (claude.ai/code 원격 제어용)
+ ${SCRIPT_NAME} close [Alias]            : 해당 alias 로 열려있는 remote tmux 세션 모두 종료
  ${SCRIPT_NAME} account                  : 사용자 계정 및 세션 정보 출력
  ${SCRIPT_NAME} alias                    : 등록된 계정/경로 Alias 목록 출력
  ${SCRIPT_NAME} version                  : 도구 버전 출력
@@ -731,7 +762,7 @@ show_help() {
  ${SCRIPT_NAME} -h, --help               : 도움말
 
 [예약어 - 계정/경로 Alias 로 사용 불가]
- login, copy, reset, logout, remote, account, alias, version, path, install, uninstall, help, -h, --help
+ login, copy, reset, logout, remote, close, account, alias, version, path, install, uninstall, help, -h, --help
 
 [환경 변수]
  - CLAUDE_CONFIG_DIR : 활성 프로파일 디렉터리로 설정됨
@@ -763,6 +794,7 @@ case "$ARG1" in
     reset)    do_reset; exit 0 ;;
     logout)   do_logout; exit 0 ;;
     remote)   do_remote; exit 0 ;;
+    close)    do_close; exit 0 ;;
     account)  do_account; exit 0 ;;
     version)  do_version; exit 0 ;;
     path)     do_path; exit 0 ;;
