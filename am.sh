@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.1.13"
+VERSION="1.1.14"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -579,25 +579,26 @@ do_remote() {
 
     local log_file="${CONFIG_BASE_DIR}/remote-${session_name}.log"
     local launch_script="${CONFIG_BASE_DIR}/.launch-${session_name}.sh"
+    # No stdout/stderr pipe in this script -- claude must see a real TTY
+    # (tmux pane) or it falls back to --print mode and exits with the
+    # "Input must be provided" error.
     cat > "$launch_script" <<EOF
 #!/usr/bin/env bash
 export CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR}"
 cd "${target_path}" || exit 1
-{
-    echo "[am remote] start \$(date -Iseconds 2>/dev/null || date)"
-    echo "[am remote] alias: ${REMOTE_ALIAS}"
-    echo "[am remote] folder: ${folder}"
-    echo "[am remote] CLAUDE_CONFIG_DIR: \$CLAUDE_CONFIG_DIR"
-    echo "[am remote] claude: \$(command -v claude || echo NOT-FOUND)"
-    echo "[am remote] claude --version: \$(claude --version 2>&1 || echo FAILED)"
-    echo "[am remote] launching: claude --remote-control ${folder}"
-    echo
-    claude --remote-control "${folder}"
-    rc=\$?
-    echo
-    echo "[am remote] claude exited rc=\$rc at \$(date -Iseconds 2>/dev/null || date)"
-    echo "[am remote] tmux session stays alive — Ctrl+D to close, or run: ${SCRIPT_NAME} close ${REMOTE_ALIAS}"
-} 2>&1 | tee -a "${log_file}"
+echo "[am remote] start \$(date -Iseconds 2>/dev/null || date)"
+echo "[am remote] alias: ${REMOTE_ALIAS}"
+echo "[am remote] folder: ${folder}"
+echo "[am remote] CLAUDE_CONFIG_DIR: \$CLAUDE_CONFIG_DIR"
+echo "[am remote] claude: \$(command -v claude || echo NOT-FOUND)"
+echo "[am remote] claude --version: \$(claude --version 2>&1 || echo FAILED)"
+echo "[am remote] launching: claude --remote-control ${folder}"
+echo
+claude --remote-control "${folder}"
+rc=\$?
+echo
+echo "[am remote] claude exited rc=\$rc at \$(date -Iseconds 2>/dev/null || date)"
+echo "[am remote] tmux session stays alive — Ctrl+D to close, or run: ${SCRIPT_NAME} close ${REMOTE_ALIAS}"
 exec bash -l
 EOF
     chmod +x "$launch_script"
@@ -613,6 +614,9 @@ EOF
         echo "[오류] tmux new-session 실패 (rc=${rc})."
         return $rc
     fi
+    # Capture pane output to log via tmux pipe-pane so claude's stdout
+    # stays attached to the PTY and TTY detection succeeds.
+    tmux pipe-pane -t "$session_name" -o "cat >> '${log_file}'" 2>/dev/null || true
     echo "[완료] tmux 백그라운드 시작. https://claude.ai/code 에서 원격 제어 가능 (등록 성공 시)."
     echo "[안내] 로그 확인 (실시간): tail -f ${log_file}"
     echo "[안내] 부착 (디버깅용): tmux attach -t ${session_name}"
