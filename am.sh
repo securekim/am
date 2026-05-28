@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.1.3"
+VERSION="1.1.4"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -378,7 +378,8 @@ do_uninstall() {
 }
 
 do_login() {
-    read -r -p "로그인할 계정 Alias를 입력하세요: " NEW_ALIAS
+    NEW_ALIAS="$ARG2"
+    [[ -z "$NEW_ALIAS" ]] && read -r -p "로그인할 계정 Alias를 입력하세요: " NEW_ALIAS
     [[ -z "$NEW_ALIAS" ]] && { echo "[오류] Alias가 비어있습니다."; return; }
     if is_reserved "$NEW_ALIAS"; then
         echo "[오류] '${NEW_ALIAS}'은(는) 예약어이므로 계정 Alias로 사용할 수 없습니다."
@@ -662,7 +663,7 @@ show_help() {
 ==================================================
 [사용법]
  ${SCRIPT_NAME}                          : 마지막 사용 프로파일·경로에서 실행
- ${SCRIPT_NAME} login                    : 새로운 계정 프로파일 생성 및 로그인
+ ${SCRIPT_NAME} login [Alias]            : 새로운 계정 프로파일 생성 및 로그인 (Alias 생략 시 입력 프롬프트)
  ${SCRIPT_NAME} copy [원본Alias] [신규Alias] : 기존 계정 설정을 복제하여 신규 계정 생성
  ${SCRIPT_NAME} logout [Alias]           : 특정 계정 Alias 삭제
  ${SCRIPT_NAME} reset                    : 모든 계정·경로·설정 초기화
@@ -686,13 +687,13 @@ show_help() {
  - CLAUDE_CONFIG_DIR : 활성 프로파일 디렉터리로 설정됨
 
 [예시]
- ${SCRIPT_NAME} login                    -> 계정 Alias a 로그인
+ ${SCRIPT_NAME} login a                  -> 계정 Alias a 로 로그인
  ${SCRIPT_NAME} copy a a1                -> a 설정 복제, a1 생성
  ${SCRIPT_NAME} a ~/workspace            -> a 프로파일로 ~/workspace 작업
  ${SCRIPT_NAME} path tabmerge ~/src/TabMerge -> 경로 Alias 등록
  ${SCRIPT_NAME} a tabmerge               -> a 프로파일로 tabmerge 경로 Alias 위치에서 실행
+ ${SCRIPT_NAME} remote a tabmerge        -> a 프로파일로 tabmerge 위치에서 원격 제어용 백그라운드 실행
  ${SCRIPT_NAME} logout a1                -> a1 계정 삭제
- ${SCRIPT_NAME} reset                    -> 전체 초기화
 ==================================================
 EOF
 }

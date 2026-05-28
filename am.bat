@@ -6,7 +6,7 @@
 :: ==================================================
 setlocal enabledelayedexpansion
 
-set "VERSION=1.1.3"
+set "VERSION=1.1.4"
 
 :: 기본 경로 설정
 set "CONFIG_BASE_DIR=%~dp0claude_configs"
@@ -445,7 +445,8 @@ echo [완료] PATH 에서 제거됨: !REPO_DIR!
 goto :EOF
 
 :DO_LOGIN
-set /p NEW_ALIAS="로그인할 계정 Alias를 입력하세요: "
+set "NEW_ALIAS=!ARG2!"
+if "!NEW_ALIAS!"=="" set /p NEW_ALIAS="로그인할 계정 Alias를 입력하세요: "
 if "!NEW_ALIAS!"=="" (
     echo [오류] Alias가 비어있습니다.
     goto :EOF
@@ -746,7 +747,7 @@ echo [사용법]
 echo  %~n0                                  : 마지막 사용 프로파일·경로에서 실행
 echo  %~n0 install                          : 사용자 PATH 에 현재 디렉터리 추가 (어디서나 %~n0 실행)
 echo  %~n0 uninstall                        : 사용자 PATH 에서 현재 디렉터리 제거
-echo  %~n0 login                            : 새로운 계정 프로파일 생성 및 로그인
+echo  %~n0 login [Alias]                    : 새로운 계정 프로파일 생성 및 로그인 (Alias 생략 시 입력 프롬프트)
 echo  %~n0 copy [원본Alias] [신규Alias]     : 기존 계정 설정을 복제하여 신규 계정 생성
 echo  %~n0 logout [Alias]                   : 특정 계정 Alias 삭제
 echo  %~n0 reset                            : 모든 계정·경로·설정 초기화
@@ -768,14 +769,13 @@ echo [환경 변수]
 echo  - CLAUDE_CONFIG_DIR : 활성 프로파일 디렉터리로 설정됨
 echo.
 echo [예시]
-echo  %~n0 install                                        -^> PATH 에 등록 (어디서나 %~n0 실행 가능)
-echo  %~n0 login                                          -^> 계정 Alias a 로그인
+echo  %~n0 login a                                        -^> 계정 Alias a 로 로그인
 echo  %~n0 copy a a1                                      -^> a 설정 복제, a1 생성
 echo  %~n0 a D:\workspace                                 -^> a 프로파일로 D:\workspace 작업
 echo  %~n0 path tabmerge C:\backup\C-Lab\gitsrc\TabMerge  -^> 경로 Alias 등록
 echo  %~n0 a tabmerge                                     -^> a 프로파일로 tabmerge 경로 Alias 위치에서 실행
+echo  %~n0 remote a tabmerge                              -^> a 프로파일로 tabmerge 위치에서 원격 제어용 백그라운드 실행
 echo  %~n0 alias                                          -^> 계정/경로 Alias 목록 출력
 echo  %~n0 logout a1                                      -^> a1 계정 삭제
-echo  %~n0 reset                                          -^> 전체 초기화
 echo ==================================================
 goto :EOF
