@@ -6,7 +6,7 @@
 :: ==================================================
 setlocal enabledelayedexpansion
 
-set "VERSION=1.1.7"
+set "VERSION=1.1.8"
 
 :: 기본 경로 설정
 set "CONFIG_BASE_DIR=%~dp0claude_configs"
@@ -467,20 +467,7 @@ if "!NEW_ALIAS!"=="" (
     echo [오류] Alias가 비어있습니다.
     goto :EOF
 )
-call :CHECK_INSTALL_HINT
-if /i "!ARG1!"=="install" goto :EOF
-if /i "!ARG1!"=="uninstall" goto :EOF
-if /i "!ARG1!"=="version" goto :EOF
-if /i "!ARG1!"=="-h" goto :EOF
-if /i "!ARG1!"=="--help" goto :EOF
-set "REPO_DIR_CHK=%~dp0"
-if "!REPO_DIR_CHK:~-1!"=="\" set "REPO_DIR_CHK=!REPO_DIR_CHK:~0,-1!"
-reg query "HKCU\Environment" /v Path 2>nul | findstr /i /c:"!REPO_DIR_CHK!" >nul 2>&1
-if not errorlevel 1 goto :EOF
-echo [안내] '%~n0' 명령이 PATH 에 등록되지 않았습니다. '%~n0 install' 로 설치하면 어디서나 '%~n0' 명령으로 실행 가능합니다.
-goto :EOF
-
-:CHECK_RESERVED "!NEW_ALIAS!"
+call :CHECK_RESERVED "!NEW_ALIAS!"
 if "!RESERVED!"=="1" (
     echo [오류] '!NEW_ALIAS!'은^(는^) 예약어이므로 계정 Alias로 사용할 수 없습니다.
     goto :EOF
@@ -507,20 +494,7 @@ if "!NEW_ALIAS!"=="" (
     set /p NEW_ALIAS="복제할 신규 계정 Alias를 입력하세요: "
 )
 
-call :CHECK_INSTALL_HINT
-if /i "!ARG1!"=="install" goto :EOF
-if /i "!ARG1!"=="uninstall" goto :EOF
-if /i "!ARG1!"=="version" goto :EOF
-if /i "!ARG1!"=="-h" goto :EOF
-if /i "!ARG1!"=="--help" goto :EOF
-set "REPO_DIR_CHK=%~dp0"
-if "!REPO_DIR_CHK:~-1!"=="\" set "REPO_DIR_CHK=!REPO_DIR_CHK:~0,-1!"
-reg query "HKCU\Environment" /v Path 2>nul | findstr /i /c:"!REPO_DIR_CHK!" >nul 2>&1
-if not errorlevel 1 goto :EOF
-echo [안내] '%~n0' 명령이 PATH 에 등록되지 않았습니다. '%~n0 install' 로 설치하면 어디서나 '%~n0' 명령으로 실행 가능합니다.
-goto :EOF
-
-:CHECK_RESERVED "!NEW_ALIAS!"
+call :CHECK_RESERVED "!NEW_ALIAS!"
 if "!RESERVED!"=="1" (
     echo [오류] '!NEW_ALIAS!'은^(는^) 예약어이므로 계정 Alias로 사용할 수 없습니다.
     goto :EOF
@@ -582,20 +556,7 @@ goto :EOF
 set "PA_NAME=!ARG2!"
 set "PA_DIR=!ARG3!"
 if "!PA_NAME!"=="" goto :LIST_PATH
-call :CHECK_INSTALL_HINT
-if /i "!ARG1!"=="install" goto :EOF
-if /i "!ARG1!"=="uninstall" goto :EOF
-if /i "!ARG1!"=="version" goto :EOF
-if /i "!ARG1!"=="-h" goto :EOF
-if /i "!ARG1!"=="--help" goto :EOF
-set "REPO_DIR_CHK=%~dp0"
-if "!REPO_DIR_CHK:~-1!"=="\" set "REPO_DIR_CHK=!REPO_DIR_CHK:~0,-1!"
-reg query "HKCU\Environment" /v Path 2>nul | findstr /i /c:"!REPO_DIR_CHK!" >nul 2>&1
-if not errorlevel 1 goto :EOF
-echo [안내] '%~n0' 명령이 PATH 에 등록되지 않았습니다. '%~n0 install' 로 설치하면 어디서나 '%~n0' 명령으로 실행 가능합니다.
-goto :EOF
-
-:CHECK_RESERVED "!PA_NAME!"
+call :CHECK_RESERVED "!PA_NAME!"
 if "!RESERVED!"=="1" (
     echo [오류] '!PA_NAME!'은^(는^) 예약어이므로 경로 Alias로 사용할 수 없습니다.
     goto :EOF
