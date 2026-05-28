@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.1.6"
+VERSION="1.1.7"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -928,6 +928,7 @@ if [[ -n "$S_ID" ]]; then
             echo "--------------------------------------------------"
             for ((i=1; i<=FOUND_COUNT; i++)); do
                 echo "[${i}] 시간: ${M_TIME[$i]:-} | 입력: ${M_USER[$i]:-} | 응답: ${M_ASSISTANT[$i]:-}"
+                [[ $i -lt $FOUND_COUNT ]] && echo
             done
             echo "--------------------------------------------------"
             while true; do

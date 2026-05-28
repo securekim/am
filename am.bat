@@ -6,7 +6,7 @@
 :: ==================================================
 setlocal enabledelayedexpansion
 
-set "VERSION=1.1.6"
+set "VERSION=1.1.7"
 
 :: 기본 경로 설정
 set "CONFIG_BASE_DIR=%~dp0claude_configs"
@@ -354,6 +354,7 @@ if not "!S_ID!"=="" (
     echo --------------------------------------------------
     for /l %%I in (1,1,!FOUND_COUNT!) do (
         echo [%%I] 시간: !M_TIME_%%I! ^| 입력: !M_USER_%%I! ^| 응답: !M_ASSISTANT_%%I!
+        if %%I lss !FOUND_COUNT! echo.
     )
     echo --------------------------------------------------
 
