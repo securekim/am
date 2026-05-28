@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.1.10"
+VERSION="1.1.11"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -620,7 +620,7 @@ do_path() {
         return 1
     fi
     if [[ -z "$dir" ]]; then
-        echo "[오류] 경로가 필요합니다. 예: ${SCRIPT_NAME} path ${name} /path/to/dir"
+        echo "[오류] 경로가 필요합니다. 예: ${SCRIPT_NAME} path <path alias> <real path>"
         return 1
     fi
     if [[ ! -d "$dir" ]]; then

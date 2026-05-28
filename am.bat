@@ -6,7 +6,7 @@
 :: ==================================================
 setlocal enabledelayedexpansion
 
-set "VERSION=1.1.10"
+set "VERSION=1.1.11"
 
 :: 기본 경로 설정
 set "CONFIG_BASE_DIR=%~dp0claude_configs"
@@ -573,7 +573,7 @@ if not "!RESOLVED_PATH!"=="" (
     goto :EOF
 )
 if "!PA_DIR!"=="" (
-    echo [오류] 경로가 필요합니다. 예: %~n0 path !PA_NAME! C:\path\to\dir
+    echo [오류] 경로가 필요합니다. 예: %~n0 path ^<path alias^> ^<real path^>
     goto :EOF
 )
 if not exist "!PA_DIR!\" (
