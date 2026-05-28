@@ -6,7 +6,7 @@
 :: ==================================================
 setlocal enabledelayedexpansion
 
-set "VERSION=1.1.1"
+set "VERSION=1.1.2"
 
 :: 기본 경로 설정
 set "CONFIG_BASE_DIR=%~dp0claude_configs"
