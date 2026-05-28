@@ -6,7 +6,7 @@
 :: ==================================================
 setlocal enabledelayedexpansion
 
-set "VERSION=1.1.14"
+set "VERSION=1.1.15"
 
 :: 기본 경로 설정
 set "CONFIG_BASE_DIR=%~dp0claude_configs"
@@ -688,10 +688,7 @@ goto :EOF
 :DO_REMOTE
 set "REMOTE_ALIAS=!ARG2!"
 set "REMOTE_PATH=!ARG3!"
-if "!REMOTE_ALIAS!"=="" (
-    echo [error] alias required. example: %~n0 remote a [path]
-    goto :EOF
-)
+if "!REMOTE_ALIAS!"=="" goto :LIST_REMOTE
 if not exist "!CONFIG_BASE_DIR!\!REMOTE_ALIAS!" (
     echo [error] alias '!REMOTE_ALIAS!' profile not found. run %~n0 login first.
     goto :EOF
@@ -773,6 +770,14 @@ if errorlevel 1 (
 ) else (
     echo [done] closed remote windows for alias '!CLOSE_ALIAS!'
 )
+goto :EOF
+
+:LIST_REMOTE
+echo ==================================================
+echo               open remote sessions
+echo ==================================================
+powershell -NoProfile -Command "$ws = Get-Process | Where-Object { $_.MainWindowTitle -like 'claude-remote-*' } | Select-Object -ExpandProperty MainWindowTitle; if (-not $ws) { Write-Host '  no open remote sessions.' } else { $ws | ForEach-Object { Write-Host ('  ' + $_) } }"
+echo ==================================================
 goto :EOF
 
 :SHOW_HELP

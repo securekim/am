@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.1.14"
+VERSION="1.1.15"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -508,8 +508,29 @@ do_remote() {
     local REMOTE_ALIAS="$ARG2"
     local REMOTE_PATH="$ARG3"
     if [[ -z "$REMOTE_ALIAS" ]]; then
-        echo "[오류] 계정 Alias 필수. 예: ${SCRIPT_NAME} remote a [경로]"
-        return 1
+        if ! command -v tmux >/dev/null 2>&1; then
+            echo "[오류] tmux 미설치."
+            return 1
+        fi
+        local sessions
+        sessions=$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep -F 'claude-remote-' || true)
+        if [[ -z "$sessions" ]]; then
+            echo "[안내] 열려있는 remote 세션 없음."
+            return 0
+        fi
+        echo "=================================================="
+        echo "              열려있는 remote 세션"
+        echo "=================================================="
+        local s rest alias_part folder_part
+        while IFS= read -r s; do
+            [[ -z "$s" ]] && continue
+            rest="${s#claude-remote-}"
+            alias_part="${rest%%-*}"
+            folder_part="${rest#*-}"
+            echo "  계정: ${alias_part}  폴더: ${folder_part}  세션: ${s}"
+        done <<< "$sessions"
+        echo "=================================================="
+        return 0
     fi
     if [[ ! -d "${CONFIG_BASE_DIR}/${REMOTE_ALIAS}" ]]; then
         echo "[오류] '${REMOTE_ALIAS}' 프로파일 없음. ${SCRIPT_NAME} login 으로 먼저 생성하세요."
