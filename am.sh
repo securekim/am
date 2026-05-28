@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.1.2"
+VERSION="1.1.3"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,7 +19,7 @@ LAST_ALIAS_FILE="${CONFIG_BASE_DIR}/last_alias.txt"
 PATH_ALIAS_FILE="${CONFIG_BASE_DIR}/path_aliases.txt"
 
 # 예약어 (계정/경로 alias 로 사용 불가)
-RESERVED_WORDS="login copy reset logout remote account alias version path help"
+RESERVED_WORDS="login copy reset logout remote account alias version path help install uninstall"
 
 is_reserved() {
     local w="$1"
@@ -335,6 +335,48 @@ do_version() {
     echo "Claude Code 사용자 도구: ${VERSION}"
 }
 
+do_install() {
+    local bin_dir="${HOME}/.local/bin"
+    local src="${SCRIPT_DIR}/${SCRIPT_NAME}.sh"
+    local dest="${bin_dir}/${SCRIPT_NAME}"
+
+    if [[ ! -f "$src" ]]; then
+        echo "[오류] ${src} 파일을 찾을 수 없습니다."
+        return 1
+    fi
+    chmod +x "$src"
+    mkdir -p "$bin_dir"
+
+    if [[ -L "$dest" && "$(readlink "$dest")" == "$src" ]]; then
+        echo "[안내] 이미 설치되어 있습니다: ${dest}"
+    else
+        [[ -e "$dest" || -L "$dest" ]] && rm -f "$dest"
+        ln -s "$src" "$dest"
+        echo "[완료] 설치됨: ${dest} -> ${src}"
+    fi
+
+    case ":${PATH}:" in
+        *":${bin_dir}:"*)
+            echo "[안내] PATH 등록됨. '${SCRIPT_NAME}' 명령으로 실행 가능합니다."
+            ;;
+        *)
+            echo ""
+            echo "[경고] ${bin_dir} 가 PATH 에 없습니다. 셸 rc 파일에 다음을 추가하세요:"
+            echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+            ;;
+    esac
+}
+
+do_uninstall() {
+    local dest="${HOME}/.local/bin/${SCRIPT_NAME}"
+    if [[ -L "$dest" || -e "$dest" ]]; then
+        rm -f "$dest"
+        echo "[완료] 제거됨: ${dest}"
+    else
+        echo "[안내] 설치되어 있지 않습니다: ${dest}"
+    fi
+}
+
 do_login() {
     read -r -p "로그인할 계정 Alias를 입력하세요: " NEW_ALIAS
     [[ -z "$NEW_ALIAS" ]] && { echo "[오류] Alias가 비어있습니다."; return; }
@@ -633,10 +675,12 @@ show_help() {
  ${SCRIPT_NAME} [계정 Alias]             : 해당 프로파일로 마지막 경로에서 실행
  ${SCRIPT_NAME} [경로|경로Alias]         : 마지막 프로파일로 지정 경로/경로Alias 에서 실행
  ${SCRIPT_NAME} [계정 Alias] [경로|경로Alias] : 지정 프로파일에서 경로/경로Alias 로 실행
+ ${SCRIPT_NAME} install                  : ~/.local/bin/${SCRIPT_NAME} 심볼릭 링크 생성 (PATH 등록)
+ ${SCRIPT_NAME} uninstall                : ~/.local/bin/${SCRIPT_NAME} 심볼릭 링크 제거
  ${SCRIPT_NAME} -h, --help               : 도움말
 
 [예약어 - 계정/경로 Alias 로 사용 불가]
- login, copy, reset, logout, remote, account, alias, version, path, help, -h, --help
+ login, copy, reset, logout, remote, account, alias, version, path, install, uninstall, help, -h, --help
 
 [환경 변수]
  - CLAUDE_CONFIG_DIR : 활성 프로파일 디렉터리로 설정됨
@@ -666,6 +710,8 @@ case "$ARG1" in
     version)  do_version; exit 0 ;;
     path)     do_path; exit 0 ;;
     alias)    do_alias; exit 0 ;;
+    install)  do_install; exit 0 ;;
+    uninstall) do_uninstall; exit 0 ;;
 esac
 
 # ---------- 2. 인자 분석: alias / path / path-alias ----------

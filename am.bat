@@ -6,7 +6,7 @@
 :: ==================================================
 setlocal enabledelayedexpansion
 
-set "VERSION=1.1.2"
+set "VERSION=1.1.3"
 
 :: 기본 경로 설정
 set "CONFIG_BASE_DIR=%~dp0claude_configs"
@@ -23,7 +23,7 @@ set "NEW_PATH="
 set "TARGET_ALIAS="
 
 :: 예약어 (계정/경로 alias 로 사용 불가)
-set "RESERVED_WORDS=login copy reset logout remote account alias version path help"
+set "RESERVED_WORDS=login copy reset logout remote account alias version path help install uninstall"
 
 :: PowerShell 스크립트 생성
 (
@@ -184,6 +184,8 @@ if /i "!ARG1!"=="account" goto :DO_ACCOUNT
 if /i "!ARG1!"=="version" goto :DO_VERSION
 if /i "!ARG1!"=="path" goto :DO_PATH
 if /i "!ARG1!"=="alias" goto :DO_ALIAS
+if /i "!ARG1!"=="install" goto :DO_INSTALL
+if /i "!ARG1!"=="uninstall" goto :DO_UNINSTALL
 
 :START_PARSE
 :: 2. 인자 분석: 경로 / 계정 Alias / 경로 Alias
@@ -417,6 +419,29 @@ goto :EOF
 
 :DO_VERSION
 echo Claude Code 사용자 도구 버전: !VERSION!
+goto :EOF
+
+:DO_INSTALL
+set "REPO_DIR=%~dp0"
+if "!REPO_DIR:~-1!"=="\" set "REPO_DIR=!REPO_DIR:~0,-1!"
+if not exist "!REPO_DIR!\%~n0.bat" (
+    echo [오류] !REPO_DIR!\%~n0.bat 파일을 찾을 수 없습니다.
+    goto :EOF
+)
+powershell -NoProfile -Command "$d=$env:REPO_DIR; $p=[Environment]::GetEnvironmentVariable('Path','User'); if($null -eq $p){$p=''}; $parts=$p -split ';' | Where-Object {$_ -ne ''}; if($parts -contains $d){exit 1}else{$np=if($p -eq ''){$d}else{$p+';'+$d}; [Environment]::SetEnvironmentVariable('Path',$np,'User'); exit 0}"
+if errorlevel 1 (
+    echo [안내] 이미 PATH 에 등록되어 있습니다: !REPO_DIR!
+) else (
+    echo [완료] PATH 에 추가됨: !REPO_DIR!
+)
+echo [안내] 새 cmd/PowerShell 창에서 %~n0 명령으로 실행 가능합니다.
+goto :EOF
+
+:DO_UNINSTALL
+set "REPO_DIR=%~dp0"
+if "!REPO_DIR:~-1!"=="\" set "REPO_DIR=!REPO_DIR:~0,-1!"
+powershell -NoProfile -Command "$d=$env:REPO_DIR; $p=[Environment]::GetEnvironmentVariable('Path','User'); if($null -eq $p){$p=''}; $parts=$p -split ';' | Where-Object {$_ -ne '' -and $_ -ne $d}; [Environment]::SetEnvironmentVariable('Path',($parts -join ';'),'User'); exit 0"
+echo [완료] PATH 에서 제거됨: !REPO_DIR!
 goto :EOF
 
 :DO_LOGIN
@@ -719,6 +744,8 @@ echo                Claude Code 사용자 도구 v!VERSION!
 echo ==================================================
 echo [사용법]
 echo  %~n0                                  : 마지막 사용 프로파일·경로에서 실행
+echo  %~n0 install                          : 사용자 PATH 에 현재 디렉터리 추가 (어디서나 %~n0 실행)
+echo  %~n0 uninstall                        : 사용자 PATH 에서 현재 디렉터리 제거
 echo  %~n0 login                            : 새로운 계정 프로파일 생성 및 로그인
 echo  %~n0 copy [원본Alias] [신규Alias]     : 기존 계정 설정을 복제하여 신규 계정 생성
 echo  %~n0 logout [Alias]                   : 특정 계정 Alias 삭제
@@ -735,12 +762,13 @@ echo  %~n0 [계정 Alias] [경로^|경로Alias]   : 지정 프로파일·경로/경로Alias 에서
 echo  %~n0 -h, --help                       : 도움말
 echo.
 echo [예약어 - 계정/경로 Alias 로 사용 불가]
-echo  login, copy, reset, logout, remote, account, alias, version, path, help, -h, --help
+echo  login, copy, reset, logout, remote, account, alias, version, path, install, uninstall, help, -h, --help
 echo.
 echo [환경 변수]
 echo  - CLAUDE_CONFIG_DIR : 활성 프로파일 디렉터리로 설정됨
 echo.
 echo [예시]
+echo  %~n0 install                                        -^> PATH 에 등록 (어디서나 %~n0 실행 가능)
 echo  %~n0 login                                          -^> 계정 Alias a 로그인
 echo  %~n0 copy a a1                                      -^> a 설정 복제, a1 생성
 echo  %~n0 a D:\workspace                                 -^> a 프로파일로 D:\workspace 작업
