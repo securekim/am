@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.1.0"
+VERSION="1.1.1"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,7 +19,7 @@ LAST_ALIAS_FILE="${CONFIG_BASE_DIR}/last_alias.txt"
 PATH_ALIAS_FILE="${CONFIG_BASE_DIR}/path_aliases.txt"
 
 # 예약어 (계정/경로 alias 로 사용 불가)
-RESERVED_WORDS="login copy reset logout remote info version path help"
+RESERVED_WORDS="login copy reset logout remote account alias version path help"
 
 is_reserved() {
     local w="$1"
@@ -342,6 +342,10 @@ do_login() {
         echo "[오류] '${NEW_ALIAS}'은(는) 예약어이므로 계정 Alias로 사용할 수 없습니다."
         return
     fi
+    if get_path_alias "$NEW_ALIAS" >/dev/null; then
+        echo "[오류] '${NEW_ALIAS}'은(는) 이미 경로 Alias로 등록되어 있습니다."
+        return
+    fi
     mkdir -p "${CONFIG_BASE_DIR}/${NEW_ALIAS}"
     export CLAUDE_CONFIG_DIR="${CONFIG_BASE_DIR}/${NEW_ALIAS}"
     printf '%s' "$NEW_ALIAS" > "$LAST_ALIAS_FILE"
@@ -357,12 +361,16 @@ do_copy() {
         echo "[오류] '${NEW_ALIAS}'은(는) 예약어이므로 계정 Alias로 사용할 수 없습니다."
         return
     fi
+    if get_path_alias "$NEW_ALIAS" >/dev/null; then
+        echo "[오류] '${NEW_ALIAS}'은(는) 이미 경로 Alias로 등록되어 있습니다."
+        return
+    fi
     if [[ ! -d "${CONFIG_BASE_DIR}/${SRC_ALIAS}" ]]; then
         echo "[오류] 원본 계정 '${SRC_ALIAS}'이(가) 존재하지 않습니다."
         return
     fi
     if [[ -e "${CONFIG_BASE_DIR}/${NEW_ALIAS}" ]]; then
-        echo "[오류] 대상 계정 '${NEW_ALIAS}'이(가) 이미 존재합니다."
+        echo "[오류] '${NEW_ALIAS}'은(는) 이미 계정 Alias로 등록되어 있습니다."
         return
     fi
     mkdir -p "${CONFIG_BASE_DIR}/${NEW_ALIAS}"
@@ -510,6 +518,14 @@ do_path() {
         echo "[오류] '${name}'은(는) 예약어이므로 경로 Alias로 사용할 수 없습니다."
         return 1
     fi
+    if [[ -d "${CONFIG_BASE_DIR}/${name}" ]]; then
+        echo "[오류] '${name}'은(는) 이미 계정 Alias로 등록되어 있습니다."
+        return 1
+    fi
+    if get_path_alias "$name" >/dev/null; then
+        echo "[오류] '${name}'은(는) 이미 경로 Alias로 등록되어 있습니다."
+        return 1
+    fi
     if [[ -z "$dir" ]]; then
         echo "[오류] 경로가 필요합니다. 예: ${SCRIPT_NAME} path ${name} /path/to/dir"
         return 1
@@ -520,21 +536,44 @@ do_path() {
     fi
     local abs_dir
     abs_dir="$(cd "$dir" 2>/dev/null && pwd)" || abs_dir="$dir"
-    local tmp="${PATH_ALIAS_FILE}.tmp"
-    : > "$tmp"
-    if [[ -f "$PATH_ALIAS_FILE" ]]; then
-        local k v
-        while IFS='=' read -r k v; do
-            [[ -z "$k" || "$k" == "$name" ]] && continue
-            echo "${k}=${v}" >> "$tmp"
-        done < "$PATH_ALIAS_FILE"
-    fi
-    echo "${name}=${abs_dir}" >> "$tmp"
-    mv "$tmp" "$PATH_ALIAS_FILE"
+    echo "${name}=${abs_dir}" >> "$PATH_ALIAS_FILE"
     echo "[안내] 경로 Alias '${name}' -> '${abs_dir}' 등록 완료."
 }
 
-do_info() {
+do_alias() {
+    echo "=================================================="
+    echo "                  등록된 Alias 목록"
+    echo "=================================================="
+    echo "[계정 Alias]"
+    local found=0 d name
+    if [[ -d "$CONFIG_BASE_DIR" ]]; then
+        for d in "${CONFIG_BASE_DIR}"/*/; do
+            [[ -d "$d" ]] || continue
+            name="$(basename "$d")"
+            [[ "$name" == "shared" ]] && continue
+            echo "  ${name}"
+            found=1
+        done
+    fi
+    [[ $found -eq 0 ]] && echo "  (없음)"
+    echo
+    echo "[경로 Alias]"
+    if [[ ! -f "$PATH_ALIAS_FILE" ]]; then
+        echo "  (없음)"
+    else
+        local k v has=0
+        while IFS='=' read -r k v; do
+            if [[ -n "$k" ]]; then
+                echo "  ${k} -> ${v}"
+                has=1
+            fi
+        done < "$PATH_ALIAS_FILE"
+        [[ $has -eq 0 ]] && echo "  (없음)"
+    fi
+    echo "=================================================="
+}
+
+do_account() {
     echo "=================================================="
     echo "             사용자 계정 정보 목록"
     echo "=================================================="
@@ -586,17 +625,18 @@ show_help() {
  ${SCRIPT_NAME} logout [Alias]           : 특정 계정 Alias 삭제
  ${SCRIPT_NAME} reset                    : 모든 계정·경로·설정 초기화
  ${SCRIPT_NAME} remote [Alias] [경로]    : alias 프로파일로 tmux 백그라운드 'claude --remote-control' 실행 (claude.ai/code 원격 제어용)
- ${SCRIPT_NAME} info                     : 사용자 계정 및 세션 정보 출력
+ ${SCRIPT_NAME} account                  : 사용자 계정 및 세션 정보 출력
+ ${SCRIPT_NAME} alias                    : 등록된 계정/경로 Alias 목록 출력
  ${SCRIPT_NAME} version                  : 도구 버전 출력
  ${SCRIPT_NAME} path                     : 등록된 경로 Alias 목록 출력
- ${SCRIPT_NAME} path [이름] [경로]       : 경로 Alias 등록 (예: ${SCRIPT_NAME} path tabmerge /path/to/TabMerge)
+ ${SCRIPT_NAME} path [경로Alias] [실제경로] : 경로 Alias 등록 (예: ${SCRIPT_NAME} path tabmerge /path/to/TabMerge)
  ${SCRIPT_NAME} [계정 Alias]             : 해당 프로파일로 마지막 경로에서 실행
  ${SCRIPT_NAME} [경로|경로Alias]         : 마지막 프로파일로 지정 경로/경로Alias 에서 실행
  ${SCRIPT_NAME} [계정 Alias] [경로|경로Alias] : 지정 프로파일에서 경로/경로Alias 로 실행
  ${SCRIPT_NAME} -h, --help               : 도움말
 
 [예약어 - 계정/경로 Alias 로 사용 불가]
- login, copy, reset, logout, remote, info, version, path, help, -h, --help
+ login, copy, reset, logout, remote, account, alias, version, path, help, -h, --help
 
 [환경 변수]
  - CLAUDE_CONFIG_DIR : 활성 프로파일 디렉터리로 설정됨
@@ -622,9 +662,10 @@ case "$ARG1" in
     reset)    do_reset; exit 0 ;;
     logout)   do_logout; exit 0 ;;
     remote)   do_remote; exit 0 ;;
-    info)     do_info; exit 0 ;;
+    account)  do_account; exit 0 ;;
     version)  do_version; exit 0 ;;
     path)     do_path; exit 0 ;;
+    alias)    do_alias; exit 0 ;;
 esac
 
 # ---------- 2. 인자 분석: alias / path / path-alias ----------
