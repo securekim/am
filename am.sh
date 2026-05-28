@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.1.9"
+VERSION="1.1.10"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -422,10 +422,8 @@ do_uninstall() {
 }
 
 check_install_hint() {
-    local installed="${HOME}/.local/bin/${SCRIPT_NAME}"
-    local expected="${SCRIPT_DIR}/${SCRIPT_NAME}.sh"
-    [[ -L "$installed" && "$(readlink "$installed")" == "$expected" ]] && return
-    [[ -f "$installed" && ! -L "$installed" ]] && return
+    # Already resolvable as a command on PATH? No hint needed.
+    command -v "$SCRIPT_NAME" >/dev/null 2>&1 && return
     echo "[안내] '${SCRIPT_NAME}' 명령이 설치되지 않았습니다. 'bash ${SCRIPT_NAME}.sh install' 로 설치하면 어디서나 '${SCRIPT_NAME}' 명령으로 실행 가능합니다."
 }
 
