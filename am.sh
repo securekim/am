@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.1.15"
+VERSION="1.1.16"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -332,7 +332,7 @@ merge_settings() {
 
 # ---------- 명령어 함수 ----------
 do_version() {
-    echo "Claude Code 사용자 도구: ${VERSION}"
+    echo "Agent Manager: ${VERSION}"
 }
 
 _pick_rc_file() {
@@ -792,7 +792,7 @@ do_account() {
 show_help() {
     cat <<EOF
 ==================================================
-             Claude Code 사용자 도구 v${VERSION}
+             Agent Manager v${VERSION}
 ==================================================
 [사용법]
  ${SCRIPT_NAME}                          : 마지막 사용 프로파일·경로에서 실행

@@ -6,7 +6,7 @@
 :: ==================================================
 setlocal enabledelayedexpansion
 
-set "VERSION=1.1.15"
+set "VERSION=1.1.16"
 
 :: 기본 경로 설정
 set "CONFIG_BASE_DIR=%~dp0claude_configs"
@@ -437,7 +437,7 @@ for /f "usebackq tokens=1,* delims==" %%A in ("!PATH_ALIAS_FILE!") do (
 goto :EOF
 
 :DO_VERSION
-echo Claude Code 사용자 도구 버전: !VERSION!
+echo Agent Manager 버전: !VERSION!
 goto :EOF
 
 :DO_INSTALL
@@ -782,7 +782,7 @@ goto :EOF
 
 :SHOW_HELP
 echo ==================================================
-echo                Claude Code 사용자 도구 v!VERSION!
+echo                Agent Manager v!VERSION!
 echo ==================================================
 echo [사용법]
 echo  %~n0                                  : 마지막 사용 프로파일·경로에서 실행
