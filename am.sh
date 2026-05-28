@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.1.12"
+VERSION="1.1.13"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -570,24 +570,52 @@ do_remote() {
         tmux kill-session -t "$session_name" 2>/dev/null || true
     fi
 
-    # bash -lc so PATH includes claude (login shell sources profile/rc).
-    local remote_cmd
-    printf -v remote_cmd 'claude --remote-control %q' "$folder"
+    # Login shell PATH check (where claude is normally installed via nvm/npm).
+    if ! bash -lc 'command -v claude >/dev/null 2>&1'; then
+        echo "[오류] login shell PATH 에 'claude' 명령 없음."
+        echo "[안내] 'bash -l -c \"command -v claude\"' 결과 확인 후 PATH 설정 보완."
+        return 1
+    fi
+
+    local log_file="${CONFIG_BASE_DIR}/remote-${session_name}.log"
+    local launch_script="${CONFIG_BASE_DIR}/.launch-${session_name}.sh"
+    cat > "$launch_script" <<EOF
+#!/usr/bin/env bash
+export CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR}"
+cd "${target_path}" || exit 1
+{
+    echo "[am remote] start \$(date -Iseconds 2>/dev/null || date)"
+    echo "[am remote] alias: ${REMOTE_ALIAS}"
+    echo "[am remote] folder: ${folder}"
+    echo "[am remote] CLAUDE_CONFIG_DIR: \$CLAUDE_CONFIG_DIR"
+    echo "[am remote] claude: \$(command -v claude || echo NOT-FOUND)"
+    echo "[am remote] claude --version: \$(claude --version 2>&1 || echo FAILED)"
+    echo "[am remote] launching: claude --remote-control ${folder}"
+    echo
+    claude --remote-control "${folder}"
+    rc=\$?
+    echo
+    echo "[am remote] claude exited rc=\$rc at \$(date -Iseconds 2>/dev/null || date)"
+    echo "[am remote] tmux session stays alive — Ctrl+D to close, or run: ${SCRIPT_NAME} close ${REMOTE_ALIAS}"
+} 2>&1 | tee -a "${log_file}"
+exec bash -l
+EOF
+    chmod +x "$launch_script"
+
     echo "[원격] alias='${REMOTE_ALIAS}' path='${target_path}' folder='${folder}'"
     echo "[원격] tmux session='${session_name}'"
     echo "[원격] CLAUDE_CONFIG_DIR='${CLAUDE_CONFIG_DIR}'"
-    echo "[원격] cmd: ${remote_cmd}"
+    echo "[원격] log file='${log_file}'"
 
-    tmux new-session -d -s "$session_name" -c "$target_path" \
-        -e "CLAUDE_CONFIG_DIR=${CLAUDE_CONFIG_DIR}" \
-        bash -lc "$remote_cmd"
+    tmux new-session -d -s "$session_name" "bash -l '${launch_script}'"
     local rc=$?
     if [[ $rc -ne 0 ]]; then
         echo "[오류] tmux new-session 실패 (rc=${rc})."
         return $rc
     fi
-    echo "[완료] https://claude.ai/code 에서 원격 제어 가능."
-    echo "[안내] 부착: tmux attach -t ${session_name}"
+    echo "[완료] tmux 백그라운드 시작. https://claude.ai/code 에서 원격 제어 가능 (등록 성공 시)."
+    echo "[안내] 로그 확인 (실시간): tail -f ${log_file}"
+    echo "[안내] 부착 (디버깅용): tmux attach -t ${session_name}"
     echo "[안내] 종료: ${SCRIPT_NAME} close ${REMOTE_ALIAS}"
 }
 
