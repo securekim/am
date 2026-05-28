@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.1.5"
+VERSION="1.1.6"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -335,6 +335,49 @@ do_version() {
     echo "Claude Code 사용자 도구: ${VERSION}"
 }
 
+_pick_rc_file() {
+    local shell_name="${SHELL##*/}"
+    case "$shell_name" in
+        zsh)  printf '%s' "${HOME}/.zshrc" ;;
+        bash) printf '%s' "${HOME}/.bashrc" ;;
+        *)    printf '%s' "${HOME}/.profile" ;;
+    esac
+}
+
+_install_marker() {
+    printf '# Added by %s install (do not edit this line)' "$SCRIPT_NAME"
+}
+
+_add_path_to_rc() {
+    local rc_file; rc_file="$(_pick_rc_file)"
+    local marker; marker="$(_install_marker)"
+    local export_line='export PATH="$HOME/.local/bin:$PATH"'
+
+    touch "$rc_file"
+    if grep -qF "$marker" "$rc_file" 2>/dev/null; then
+        echo "[안내] ${rc_file} 에 이미 ${SCRIPT_NAME} install 항목이 있습니다."
+    else
+        printf '\n%s\n%s\n' "$marker" "$export_line" >> "$rc_file"
+        echo "[완료] ${rc_file} 에 PATH 설정 추가됨."
+    fi
+    echo "[안내] 현재 셸에 즉시 적용: source ${rc_file}"
+    echo "[안내] 또는 새 터미널에서 '${SCRIPT_NAME}' 실행."
+}
+
+_remove_path_from_rc() {
+    local rc_file; rc_file="$(_pick_rc_file)"
+    local marker; marker="$(_install_marker)"
+    [[ -f "$rc_file" ]] || return 0
+    grep -qF "$marker" "$rc_file" 2>/dev/null || return 0
+    local tmp="${rc_file}.am.tmp.$$"
+    awk -v m="$marker" '
+        $0 == m { skip = 1; next }
+        skip == 1 { skip = 0; next }
+        { print }
+    ' "$rc_file" > "$tmp" && mv "$tmp" "$rc_file"
+    echo "[안내] ${rc_file} 에서 ${SCRIPT_NAME} install PATH 설정 제거됨."
+}
+
 do_install() {
     local bin_dir="${HOME}/.local/bin"
     local src="${SCRIPT_DIR}/${SCRIPT_NAME}.sh"
@@ -361,8 +404,8 @@ do_install() {
             ;;
         *)
             echo ""
-            echo "[경고] ${bin_dir} 가 PATH 에 없습니다. 셸 rc 파일에 다음을 추가하세요:"
-            echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+            echo "[경고] ${bin_dir} 가 현재 PATH 에 없습니다. 셸 rc 파일에 자동 추가합니다."
+            _add_path_to_rc
             ;;
     esac
 }
@@ -375,6 +418,7 @@ do_uninstall() {
     else
         echo "[안내] 설치되어 있지 않습니다: ${dest}"
     fi
+    _remove_path_from_rc
 }
 
 check_install_hint() {
