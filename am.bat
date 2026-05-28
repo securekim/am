@@ -6,7 +6,7 @@
 :: ==================================================
 setlocal enabledelayedexpansion
 
-set "VERSION=1.1.8"
+set "VERSION=1.1.9"
 
 :: 기본 경로 설정
 set "CONFIG_BASE_DIR=%~dp0claude_configs"
@@ -242,8 +242,10 @@ if not "!TARGET_ALIAS!"=="" (
 set "GLOBAL_CLAUDE_DIR=%USERPROFILE%\.claude"
 if not exist "!GLOBAL_CLAUDE_DIR!\plugins" mkdir "!GLOBAL_CLAUDE_DIR!\plugins"
 if not exist "!GLOBAL_CLAUDE_DIR!\hooks" mkdir "!GLOBAL_CLAUDE_DIR!\hooks"
+if not exist "!GLOBAL_CLAUDE_DIR!\skills" mkdir "!GLOBAL_CLAUDE_DIR!\skills"
+if not exist "!GLOBAL_CLAUDE_DIR!\agents" mkdir "!GLOBAL_CLAUDE_DIR!\agents"
 
-for %%D in (plugins hooks) do (
+for %%D in (plugins hooks skills agents) do (
     fsutil reparsepoint query "!CLAUDE_CONFIG_DIR!\%%D" >nul 2>&1
     if errorlevel 1 (
         if exist "!CLAUDE_CONFIG_DIR!\%%D" (
@@ -699,7 +701,9 @@ echo !REMOTE_ALIAS!>"!LAST_ALIAS_FILE!"
 set "GLOBAL_CLAUDE_DIR=%USERPROFILE%\.claude"
 if not exist "!GLOBAL_CLAUDE_DIR!\plugins" mkdir "!GLOBAL_CLAUDE_DIR!\plugins"
 if not exist "!GLOBAL_CLAUDE_DIR!\hooks" mkdir "!GLOBAL_CLAUDE_DIR!\hooks"
-for %%D in (plugins hooks) do (
+if not exist "!GLOBAL_CLAUDE_DIR!\skills" mkdir "!GLOBAL_CLAUDE_DIR!\skills"
+if not exist "!GLOBAL_CLAUDE_DIR!\agents" mkdir "!GLOBAL_CLAUDE_DIR!\agents"
+for %%D in (plugins hooks skills agents) do (
     fsutil reparsepoint query "!CLAUDE_CONFIG_DIR!\%%D" >nul 2>&1
     if errorlevel 1 (
         if exist "!CLAUDE_CONFIG_DIR!\%%D" (

@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.1.8"
+VERSION="1.1.9"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -522,9 +522,9 @@ do_remote() {
 
     # 글로벌 plugins/hooks 링크 + mcp.json 동기화 (일반 실행과 동일하게)
     local GLOBAL_CLAUDE_DIR="${HOME}/.claude"
-    mkdir -p "${GLOBAL_CLAUDE_DIR}/plugins" "${GLOBAL_CLAUDE_DIR}/hooks"
+    mkdir -p "${GLOBAL_CLAUDE_DIR}/plugins" "${GLOBAL_CLAUDE_DIR}/hooks" "${GLOBAL_CLAUDE_DIR}/skills" "${GLOBAL_CLAUDE_DIR}/agents"
     local sub target
-    for sub in plugins hooks; do
+    for sub in plugins hooks skills agents; do
         target="${CLAUDE_CONFIG_DIR}/${sub}"
         if [[ -L "$target" ]]; then
             :
@@ -814,11 +814,11 @@ else
     exit 1
 fi
 
-# ---------- 전역 .claude 의 plugins/hooks 를 심볼릭 링크로 공유 ----------
+# ---------- 전역 .claude 의 plugins/hooks/skills/agents 를 심볼릭 링크로 공유 ----------
 GLOBAL_CLAUDE_DIR="${HOME}/.claude"
-mkdir -p "${GLOBAL_CLAUDE_DIR}/plugins" "${GLOBAL_CLAUDE_DIR}/hooks"
+mkdir -p "${GLOBAL_CLAUDE_DIR}/plugins" "${GLOBAL_CLAUDE_DIR}/hooks" "${GLOBAL_CLAUDE_DIR}/skills" "${GLOBAL_CLAUDE_DIR}/agents"
 
-for sub in plugins hooks; do
+for sub in plugins hooks skills agents; do
     target="${CLAUDE_CONFIG_DIR}/${sub}"
     if [[ -L "$target" ]]; then
         # 이미 심볼릭 링크면 그대로 둠
