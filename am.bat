@@ -6,7 +6,7 @@
 :: ==================================================
 setlocal enabledelayedexpansion
 
-set "VERSION=1.1.16"
+set "VERSION=1.1.17"
 
 :: 기본 경로 설정
 set "CONFIG_BASE_DIR=%~dp0claude_configs"
@@ -212,8 +212,17 @@ if not "!ARG1!"=="" (
             set "NEW_PATH=!ARG2!"
         ) else (
             call :GET_PATH_ALIAS "!ARG2!"
+            set "ARG2_OK=0"
             if not "!RESOLVED_PATH!"=="" (
-                if exist "!RESOLVED_PATH!\" set "NEW_PATH=!RESOLVED_PATH!"
+                if exist "!RESOLVED_PATH!\" (
+                    set "NEW_PATH=!RESOLVED_PATH!"
+                    set "ARG2_OK=1"
+                )
+            )
+            if "!ARG2_OK!"=="0" (
+                echo [오류] '!ARG2!' 은^(는^) 등록된 경로 Alias도 아니고 존재하는 경로도 아닙니다.
+                echo [안내] 경로 Alias 등록: %~n0 path ^<경로Alias^> ^<실제경로^>
+                goto :EOF
             )
         )
     )
@@ -562,6 +571,16 @@ if "!PA_NAME!"=="" goto :LIST_PATH
 call :CHECK_RESERVED "!PA_NAME!"
 if "!RESERVED!"=="1" (
     echo [오류] '!PA_NAME!'은^(는^) 예약어이므로 경로 Alias로 사용할 수 없습니다.
+    goto :EOF
+)
+set "PA_CHK=!PA_NAME:/=!"
+if not "!PA_CHK!"=="!PA_NAME!" (
+    echo [오류] 경로 Alias '!PA_NAME!' 에 '/' 또는 '\' 사용 불가.
+    goto :EOF
+)
+set "PA_CHK=!PA_NAME:\=!"
+if not "!PA_CHK!"=="!PA_NAME!" (
+    echo [오류] 경로 Alias '!PA_NAME!' 에 '/' 또는 '\' 사용 불가.
     goto :EOF
 )
 if exist "!CONFIG_BASE_DIR!\!PA_NAME!" (

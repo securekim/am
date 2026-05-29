@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.1.16"
+VERSION="1.1.17"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -694,6 +694,10 @@ do_path() {
         echo "[오류] '${name}'은(는) 예약어이므로 경로 Alias로 사용할 수 없습니다."
         return 1
     fi
+    if [[ "$name" == *"/"* || "$name" == *"\\"* ]]; then
+        echo "[오류] 경로 Alias '${name}' 에 '/' 또는 '\\' 사용 불가."
+        return 1
+    fi
     if [[ -d "${CONFIG_BASE_DIR}/${name}" ]]; then
         echo "[오류] '${name}'은(는) 이미 계정 Alias로 등록되어 있습니다."
         return 1
@@ -872,6 +876,10 @@ if [[ -n "$ARG1" ]]; then
                 _resolved=$(get_path_alias "$ARG2") || _resolved=""
                 if [[ -n "$_resolved" && -d "$_resolved" ]]; then
                     NEW_PATH="$_resolved"
+                else
+                    echo "[오류] '${ARG2}' 은(는) 등록된 경로 Alias도 아니고 존재하는 경로도 아닙니다."
+                    echo "[안내] 경로 Alias 등록: ${SCRIPT_NAME} path <경로Alias> <실제경로>"
+                    exit 1
                 fi
             fi
         fi
