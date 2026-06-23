@@ -19,7 +19,7 @@ LAST_ALIAS_FILE="${CONFIG_BASE_DIR}/last_alias.txt"
 PATH_ALIAS_FILE="${CONFIG_BASE_DIR}/path_aliases.txt"
 
 # 예약어 (계정/경로 alias 로 사용 불가)
-RESERVED_WORDS="login copy reset logout remote close account alias version path help install uninstall"
+RESERVED_WORDS="login copy reset logout remove delete remote close account alias version path help install uninstall"
 
 is_reserved() {
     local w="$1"
@@ -504,6 +504,45 @@ do_logout() {
     fi
 }
 
+do_remove() {
+    local target="$ARG2"
+    if [[ -z "$target" ]]; then
+        echo "[오류] 삭제할 대상(계정/경로 Alias)을 입력하세요. 예: ${SCRIPT_NAME} remove a"
+        return 1
+    fi
+    local removed=0
+    # 계정 Alias 삭제 (claude_configs/<alias> 디렉터리)
+    if [[ -d "${CONFIG_BASE_DIR}/${target}" ]]; then
+        rm -rf "${CONFIG_BASE_DIR}/${target}"
+        echo "[안내] '${target}' 계정 Alias가 삭제되었습니다."
+        if [[ -f "$LAST_ALIAS_FILE" ]]; then
+            local cur; cur="$(cat "$LAST_ALIAS_FILE" 2>/dev/null || true)"
+            [[ "$cur" == "$target" ]] && rm -f "$LAST_ALIAS_FILE"
+        fi
+        removed=1
+    fi
+    # 경로 Alias 삭제 (이름 또는 실제 경로가 일치하는 항목)
+    if [[ -f "$PATH_ALIAS_FILE" ]]; then
+        local tmp="${PATH_ALIAS_FILE}.tmp.$$"
+        if awk -v n="$target" '
+                { i=index($0,"="); k=substr($0,1,i-1); v=substr($0,i+1);
+                  if (i>0 && (k==n || v==n)) { hit=1; next }
+                  print }
+                END { exit (hit?0:1) }
+            ' "$PATH_ALIAS_FILE" > "$tmp"; then
+            mv "$tmp" "$PATH_ALIAS_FILE"
+            echo "[안내] '${target}' 경로 Alias가 삭제되었습니다."
+            removed=1
+        else
+            rm -f "$tmp"
+        fi
+    fi
+    if [[ $removed -eq 0 ]]; then
+        echo "[오류] '${target}'에 해당하는 계정/경로 Alias를 찾을 수 없습니다."
+        return 1
+    fi
+}
+
 do_remote() {
     local REMOTE_ALIAS="$ARG2"
     local REMOTE_PATH="$ARG3"
@@ -803,6 +842,8 @@ show_help() {
  ${SCRIPT_NAME} login [Alias]            : 새로운 계정 프로파일 생성 및 로그인 (Alias 생략 시 입력 프롬프트)
  ${SCRIPT_NAME} copy [원본Alias] [신규Alias] : 기존 계정 설정을 복제하여 신규 계정 생성
  ${SCRIPT_NAME} logout [Alias]           : 특정 계정 Alias 삭제
+ ${SCRIPT_NAME} remove [Alias]           : 계정 Alias 또는 경로 Alias(이름/실제경로) 삭제 (delete 동일)
+ ${SCRIPT_NAME} delete [Alias]           : remove 와 동일
  ${SCRIPT_NAME} reset                    : 모든 계정·경로·설정 초기화
  ${SCRIPT_NAME} remote [Alias] [경로]    : alias 프로파일로 tmux 백그라운드 'claude --remote-control' 실행 (claude.ai/code 원격 제어용)
  ${SCRIPT_NAME} close [Alias]            : 해당 alias 로 열려있는 remote tmux 세션 모두 종료
@@ -819,7 +860,7 @@ show_help() {
  ${SCRIPT_NAME} -h, --help               : 도움말
 
 [예약어 - 계정/경로 Alias 로 사용 불가]
- login, copy, reset, logout, remote, close, account, alias, version, path, install, uninstall, help, -h, --help
+ login, copy, reset, logout, remove, delete, remote, close, account, alias, version, path, install, uninstall, help, -h, --help
 
 [환경 변수]
  - CLAUDE_CONFIG_DIR : 활성 프로파일 디렉터리로 설정됨
@@ -850,6 +891,7 @@ case "$ARG1" in
     copy)     do_copy; exit 0 ;;
     reset)    do_reset; exit 0 ;;
     logout)   do_logout; exit 0 ;;
+    remove|delete) do_remove; exit 0 ;;
     remote)   do_remote; exit 0 ;;
     close)    do_close; exit 0 ;;
     account)  do_account; exit 0 ;;
