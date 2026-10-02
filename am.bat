@@ -8,7 +8,7 @@ chcp 65001 >nul
 :: ==================================================
 setlocal enabledelayedexpansion
 
-set "VERSION=1.1.17"
+set "VERSION=1.2.0"
 
 :: 기본 경로 설정
 set "CONFIG_BASE_DIR=%~dp0claude_configs"
@@ -18,6 +18,8 @@ set "LAST_ALIAS_FILE=!CONFIG_BASE_DIR!\last_alias.txt"
 set "PATH_ALIAS_FILE=!CONFIG_BASE_DIR!\path_aliases.txt"
 set "PS_SCRIPT=!CONFIG_BASE_DIR!\get_session.ps1"
 set "MERGE_SCRIPT=!CONFIG_BASE_DIR!\merge_settings.ps1"
+set "EXIT_PS=!CONFIG_BASE_DIR!\do_exit.ps1"
+set "LOAD_PS=!CONFIG_BASE_DIR!\do_load.ps1"
 set "ARG1=%~1"
 set "ARG2=%~2"
 set "ARG3=%~3"
@@ -25,7 +27,7 @@ set "NEW_PATH="
 set "TARGET_ALIAS="
 
 :: 예약어 (계정/경로 alias 로 사용 불가)
-set "RESERVED_WORDS=login copy reset logout remove delete remote close account alias version path help install uninstall"
+set "RESERVED_WORDS=login copy reset logout remove delete remote close account alias version path help install uninstall save exit load"
 
 :: PowerShell 스크립트 생성 (PS 5.1 이 UTF-8 로 읽도록 BOM 먼저 기록)
 powershell -NoProfile -Command "[IO.File]::WriteAllBytes('!PS_SCRIPT!', [byte[]](0xEF,0xBB,0xBF))"
@@ -165,7 +167,7 @@ echo try { $gd = Get-Content $g -Raw -Encoding UTF8 ^| ConvertFrom-Json } catch 
 echo $ad = $null
 echo if ^(Test-Path $a^) { try { $ad = Get-Content $a -Raw -Encoding UTF8 ^| ConvertFrom-Json } catch {} }
 echo if ^($null -eq $ad^) { $ad = New-Object PSObject }
-echo foreach ^($k in 'hooks','statusLine','extraKnownMarketplaces','enabledPlugins'^) {
+echo foreach ^($k in 'hooks','statusLine','extraKnownMarketplaces','enabledPlugins','remoteControlAtStartup'^) {
 echo     if ^($gd.PSObject.Properties.Name -contains $k^) {
 echo         Add-Member -InputObject $ad -NotePropertyName $k -NotePropertyValue $gd.$k -Force
 echo     }
@@ -173,6 +175,49 @@ echo }
 echo $json = $ad ^| ConvertTo-Json -Depth 32
 echo [IO.File]::WriteAllText^($a, $json, [Text.UTF8Encoding]::new^($false^)^)
 ) > "!MERGE_SCRIPT!"
+
+:: exit 세션 수집 스크립트
+powershell -NoProfile -Command "[IO.File]::WriteAllBytes('!EXIT_PS!', [byte[]](0xEF,0xBB,0xBF))"
+(
+echo param^($ConfDir, $SnapshotFile^)
+echo $aliases = Get-ChildItem -Path $ConfDir -Directory -ErrorAction SilentlyContinue ^| Where-Object { $_.Name -ne 'shared' } ^| Select-Object -ExpandProperty Name
+echo $procs = Get-Process -ErrorAction SilentlyContinue ^| Where-Object { $_.MainWindowTitle -like 'claude-remote-*' }
+echo $titles = $procs ^| Select-Object -ExpandProperty MainWindowTitle
+echo $result = @^(^)
+echo foreach ^($title in $titles^) {
+echo     foreach ^($a in $aliases^) {
+echo         if ^($title.StartsWith^("claude-remote-$a-"^)^) {
+echo             $pp = Join-Path $ConfDir "$a\last_path.txt"
+echo             $path = ""
+echo             if ^(Test-Path $pp^) { $path = ^(Get-Content $pp -Raw -Encoding UTF8^).Trim^(^) }
+echo             $rc = $true
+echo             $sp = Join-Path $ConfDir "$a\settings.json"
+echo             if ^(Test-Path $sp^) {
+echo                 try { $st = Get-Content $sp -Raw -Encoding UTF8 ^| ConvertFrom-Json; if ^($st.PSObject.Properties.Name -contains 'remoteControlAtStartup'^) { $rc = [bool]$st.remoteControlAtStartup } } catch {}
+echo             }
+echo             $result += [PSCustomObject]@{ alias = $a; path = $path; rc = $rc }
+echo             break
+echo         }
+echo     }
+echo }
+echo if ^($result.Count -eq 0^) { Write-Host "[안내] 식별 가능한 remote 세션 없음."; exit }
+echo $jsonItems = $result ^| ForEach-Object { $_ ^| ConvertTo-Json -Depth 3 -Compress }
+echo $json = "[$(($jsonItems) -join ',')]"
+echo [IO.File]::WriteAllText^($SnapshotFile, $json, [Text.UTF8Encoding]::new^($false^)^)
+echo Write-Host "[저장] $($result.Count)개 세션 정보 저장: $SnapshotFile"
+) >> "!EXIT_PS!"
+
+:: load 세션 복원 스크립트
+powershell -NoProfile -Command "[IO.File]::WriteAllBytes('!LOAD_PS!', [byte[]](0xEF,0xBB,0xBF))"
+(
+echo param^($SnapshotFile^)
+echo if ^(-not ^(Test-Path $SnapshotFile^)^) { exit }
+echo $entries = Get-Content $SnapshotFile -Raw -Encoding UTF8 ^| ConvertFrom-Json
+echo foreach ^($e in @^($entries^)^) {
+echo     Write-Output "LOAD_ALIAS=$($e.alias)"
+echo     Write-Output "LOAD_PATH=$($e.path)"
+echo }
+) >> "!LOAD_PS!"
 
 call :CHECK_INSTALL_HINT
 
@@ -194,6 +239,9 @@ if /i "!ARG1!"=="path" goto :DO_PATH
 if /i "!ARG1!"=="alias" goto :DO_ALIAS
 if /i "!ARG1!"=="install" goto :DO_INSTALL
 if /i "!ARG1!"=="uninstall" goto :DO_UNINSTALL
+if /i "!ARG1!"=="save" goto :DO_SAVE
+if /i "!ARG1!"=="exit" goto :DO_EXIT
+if /i "!ARG1!"=="load" goto :DO_LOAD
 
 :START_PARSE
 :: 2. 인자 분석: 경로 / 계정 Alias / 경로 Alias
@@ -424,6 +472,9 @@ if /i "!ARG1!"=="uninstall" goto :EOF
 if /i "!ARG1!"=="version" goto :EOF
 if /i "!ARG1!"=="-h" goto :EOF
 if /i "!ARG1!"=="--help" goto :EOF
+if /i "!ARG1!"=="save" goto :EOF
+if /i "!ARG1!"=="exit" goto :EOF
+if /i "!ARG1!"=="load" goto :EOF
 set "REPO_DIR_CHK=%~dp0"
 if "!REPO_DIR_CHK:~-1!"=="\" set "REPO_DIR_CHK=!REPO_DIR_CHK:~0,-1!"
 reg query "HKCU\Environment" /v Path 2>nul | findstr /i /c:"!REPO_DIR_CHK!" >nul 2>&1
@@ -744,6 +795,11 @@ goto :EOF
 set "REMOTE_ALIAS=!ARG2!"
 set "REMOTE_PATH=!ARG3!"
 if "!REMOTE_ALIAS!"=="" goto :LIST_REMOTE
+call :DO_REMOTE_CORE
+goto :EOF
+
+:DO_REMOTE_CORE
+if "!REMOTE_ALIAS!"=="" goto :EOF
 if not exist "!CONFIG_BASE_DIR!\!REMOTE_ALIAS!" (
     echo [error] alias '!REMOTE_ALIAS!' profile not found. run %~n0 login first.
     goto :EOF
@@ -812,6 +868,50 @@ echo [done] https://claude.ai/code remote control available.
 echo [info] window title: !WIN_TITLE!
 goto :EOF
 
+:DO_SAVE
+set "SNAPSHOT_FILE=!CONFIG_BASE_DIR!\exit_snapshot.json"
+echo 열려있는 remote 세션 정보 저장 중...
+powershell -NoProfile -ExecutionPolicy Bypass -File "!EXIT_PS!" "!CONFIG_BASE_DIR!" "!SNAPSHOT_FILE!"
+goto :EOF
+
+:DO_EXIT
+set "SNAPSHOT_FILE=!CONFIG_BASE_DIR!\exit_snapshot.json"
+echo 현재 열려있는 remote 세션 정보를 저장하고 닫습니다...
+powershell -NoProfile -ExecutionPolicy Bypass -File "!EXIT_PS!" "!CONFIG_BASE_DIR!" "!SNAPSHOT_FILE!"
+powershell -NoProfile -Command "Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -like 'claude-remote-*' } | Stop-Process -Force -ErrorAction SilentlyContinue; Write-Host '[완료] 모든 remote 창 종료됨.'"
+goto :EOF
+
+:DO_LOAD
+set "SNAPSHOT_FILE=!CONFIG_BASE_DIR!\exit_snapshot.json"
+if not exist "!SNAPSHOT_FILE!" (
+    echo [오류] 저장된 세션 없음. %~n0 exit 먼저 실행하세요.
+    goto :EOF
+)
+set "LOAD_TMP=!CONFIG_BASE_DIR!\_load_tmp.txt"
+powershell -NoProfile -ExecutionPolicy Bypass -File "!LOAD_PS!" "!SNAPSHOT_FILE!" > "!LOAD_TMP!"
+set "CURRENT_LOAD_ALIAS="
+set "LOAD_DONE=0"
+for /f "usebackq tokens=1,* delims==" %%A in ("!LOAD_TMP!") do (
+    if "%%A"=="LOAD_ALIAS" set "CURRENT_LOAD_ALIAS=%%B"
+    if "%%A"=="LOAD_PATH" (
+        if not "!CURRENT_LOAD_ALIAS!"=="" (
+            echo [로드] 복원: alias='!CURRENT_LOAD_ALIAS!' path='%%B'
+            set "REMOTE_ALIAS=!CURRENT_LOAD_ALIAS!"
+            set "REMOTE_PATH=%%B"
+            call :DO_REMOTE_CORE
+            set "CURRENT_LOAD_ALIAS="
+            set /a LOAD_DONE+=1
+        )
+    )
+)
+del "!LOAD_TMP!" 2>nul
+if "!LOAD_DONE!"=="0" (
+    echo [안내] 복원할 세션 없음.
+) else (
+    echo [완료] !LOAD_DONE!개 세션 복원 완료.
+)
+goto :EOF
+
 :DO_CLOSE
 set "CLOSE_ALIAS=!ARG2!"
 if "!CLOSE_ALIAS!"=="" (
@@ -841,6 +941,9 @@ echo                Agent Manager v!VERSION!
 echo ==================================================
 echo [사용법]
 echo  %~n0                                  : 마지막 사용 프로파일·경로에서 실행
+echo  %~n0 save                              : 열려있는 remote 세션 정보만 저장 ^(종료 안 함^)
+echo  %~n0 exit                              : 열려있는 모든 remote 세션 정보 저장 후 종료
+echo  %~n0 load                             : save/exit 로 저장된 세션 전체 복원
 echo  %~n0 install                          : 사용자 PATH 에 현재 디렉터리 추가 (어디서나 %~n0 실행)
 echo  %~n0 uninstall                        : 사용자 PATH 에서 현재 디렉터리 제거
 echo  %~n0 login [Alias]                    : 새로운 계정 프로파일 생성 및 로그인 (Alias 생략 시 입력 프롬프트)
@@ -862,7 +965,7 @@ echo  %~n0 [계정 Alias] [경로^|경로Alias]   : 지정 프로파일·경로/
 echo  %~n0 -h, --help                       : 도움말
 echo.
 echo [예약어 - 계정/경로 Alias 로 사용 불가]
-echo  login, copy, reset, logout, remove, delete, remote, close, account, alias, version, path, install, uninstall, help, -h, --help
+echo  login, copy, reset, logout, remove, delete, remote, close, account, alias, version, path, install, uninstall, save, exit, load, help, -h, --help
 echo.
 echo [환경 변수]
 echo  - CLAUDE_CONFIG_DIR : 활성 프로파일 디렉터리로 설정됨

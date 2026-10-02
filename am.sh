@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.1.17"
+VERSION="1.2.0"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,7 +19,7 @@ LAST_ALIAS_FILE="${CONFIG_BASE_DIR}/last_alias.txt"
 PATH_ALIAS_FILE="${CONFIG_BASE_DIR}/path_aliases.txt"
 
 # 예약어 (계정/경로 alias 로 사용 불가)
-RESERVED_WORDS="login copy reset logout remove delete remote close account alias version path help install uninstall"
+RESERVED_WORDS="login copy reset logout remove delete remote close account alias version path help install uninstall exit load save"
 
 is_reserved() {
     local w="$1"
@@ -323,7 +323,7 @@ merge_settings() {
     fi
     merged=$(jq -n --argjson g "$gjson" --argjson a "$ajson" '
         $a as $base
-        | reduce ["hooks","statusLine","extraKnownMarketplaces","enabledPlugins"][] as $k ($base;
+        | reduce ["hooks","statusLine","extraKnownMarketplaces","enabledPlugins","remoteControlAtStartup"][] as $k ($base;
             if ($g|has($k)) then .[$k] = $g[$k] else . end
           )
     ' 2>/dev/null) || return 0
@@ -832,6 +832,102 @@ do_account() {
     echo "=================================================="
 }
 
+do_save() {
+    local snapshot="${CONFIG_BASE_DIR}/exit_snapshot.json"
+    if ! command -v tmux >/dev/null 2>&1; then
+        echo "[오류] tmux 미설치."; return 1
+    fi
+    local all_sessions
+    all_sessions=$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep -F 'claude-remote-' || true)
+    if [[ -z "$all_sessions" ]]; then
+        echo "[안내] 열려있는 remote 세션 없음."; return 0
+    fi
+    local known_aliases=()
+    local d
+    for d in "${CONFIG_BASE_DIR}"/*/; do
+        [[ -d "$d" ]] || continue
+        local name; name="$(basename "$d")"
+        [[ "$name" == "shared" ]] && continue
+        known_aliases+=("$name")
+    done
+    local json_arr='[]'
+    local s
+    while IFS= read -r s; do
+        [[ -z "$s" ]] && continue
+        local alias_part=""
+        local a
+        for a in "${known_aliases[@]}"; do
+            if [[ "$s" == "claude-remote-${a}-"* ]]; then
+                alias_part="$a"; break
+            fi
+        done
+        [[ -z "$alias_part" ]] && continue
+        local path_val=""
+        local pp="${CONFIG_BASE_DIR}/${alias_part}/last_path.txt"
+        [[ -f "$pp" ]] && path_val="$(tr -d '\r\n' < "$pp" 2>/dev/null || true)"
+        local rc_val="true"
+        local sp="${CONFIG_BASE_DIR}/${alias_part}/settings.json"
+        if [[ -f "$sp" ]]; then
+            local rcs
+            rcs=$(jq -r 'if has("remoteControlAtStartup") then (.remoteControlAtStartup | tostring) else "true" end' "$sp" 2>/dev/null || echo "true")
+            rc_val="$rcs"
+        fi
+        json_arr=$(printf '%s' "$json_arr" | jq -c --arg a "$alias_part" --arg p "$path_val" --argjson r "$rc_val" '. += [{"alias":$a,"path":$p,"rc":$r}]')
+    done <<< "$all_sessions"
+    local count; count=$(printf '%s' "$json_arr" | jq 'length')
+    if [[ "$count" -eq 0 ]]; then
+        echo "[안내] 식별 가능한 remote 세션 없음."; return 0
+    fi
+    printf '%s\n' "$json_arr" > "$snapshot"
+    echo "[저장] ${count}개 세션 정보 저장: ${snapshot}"
+}
+
+do_exit() {
+    do_save || return 1
+    local snapshot="${CONFIG_BASE_DIR}/exit_snapshot.json"
+    [[ ! -f "$snapshot" ]] && return 0
+    local count; count=$(jq 'length' "$snapshot" 2>/dev/null || echo 0)
+    [[ "$count" -eq 0 ]] && return 0
+    local all_sessions
+    all_sessions=$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep -F 'claude-remote-' || true)
+    local killed=0
+    local s
+    while IFS= read -r s; do
+        [[ -z "$s" ]] && continue
+        if tmux kill-session -t "$s" 2>/dev/null; then
+            echo "[종료] tmux 세션: $s"; killed=$((killed+1))
+        fi
+    done <<< "$all_sessions"
+    echo "[완료] 총 ${killed}개 세션 종료됨."
+}
+
+do_load() {
+    local snapshot="${CONFIG_BASE_DIR}/exit_snapshot.json"
+    if [[ ! -f "$snapshot" ]]; then
+        echo "[오류] 저장된 세션 없음 (${snapshot}). ${SCRIPT_NAME} exit 먼저 실행하세요."; return 1
+    fi
+    local count; count=$(jq 'length' "$snapshot" 2>/dev/null || echo 0)
+    if [[ "$count" -eq 0 ]]; then
+        echo "[안내] 저장된 세션 없음."; return 0
+    fi
+    echo "[로드] ${count}개 세션 복원 시작..."
+    local i
+    for ((i=0; i<count; i++)); do
+        local alias_name path_val
+        alias_name=$(jq -r ".[$i].alias // empty" "$snapshot" 2>/dev/null || true)
+        path_val=$(jq -r ".[$i].path // empty" "$snapshot" 2>/dev/null || true)
+        [[ -z "$alias_name" ]] && continue
+        echo "[로드] 복원: alias='${alias_name}' path='${path_val}'"
+        local saved2="$ARG2" saved3="$ARG3"
+        ARG2="$alias_name"; ARG3="$path_val"
+        do_remote
+        local rc=$?
+        ARG2="$saved2"; ARG3="$saved3"
+        [[ $rc -ne 0 ]] && echo "[경고] '${alias_name}' 세션 복원 실패."
+    done
+    echo "[완료] 세션 복원 완료."
+}
+
 show_help() {
     cat <<EOF
 ==================================================
@@ -855,12 +951,15 @@ show_help() {
  ${SCRIPT_NAME} [계정 Alias]             : 해당 프로파일로 마지막 경로에서 실행
  ${SCRIPT_NAME} [경로|경로Alias]         : 마지막 프로파일로 지정 경로/경로Alias 에서 실행
  ${SCRIPT_NAME} [계정 Alias] [경로|경로Alias] : 지정 프로파일에서 경로/경로Alias 로 실행
+ ${SCRIPT_NAME} save                      : 열려있는 remote 세션 정보만 저장 (종료 안 함)
+ ${SCRIPT_NAME} exit                      : 열려있는 모든 remote 세션 정보 저장 후 종료
+ ${SCRIPT_NAME} load                     : exit/save 로 저장된 세션 전체 복원
  ${SCRIPT_NAME} install                  : ~/.local/bin/${SCRIPT_NAME} 심볼릭 링크 생성 (PATH 등록)
  ${SCRIPT_NAME} uninstall                : ~/.local/bin/${SCRIPT_NAME} 심볼릭 링크 제거
  ${SCRIPT_NAME} -h, --help               : 도움말
 
 [예약어 - 계정/경로 Alias 로 사용 불가]
- login, copy, reset, logout, remove, delete, remote, close, account, alias, version, path, install, uninstall, help, -h, --help
+ login, copy, reset, logout, remove, delete, remote, close, account, alias, version, path, install, uninstall, save, exit, load, help, -h, --help
 
 [환경 변수]
  - CLAUDE_CONFIG_DIR : 활성 프로파일 디렉터리로 설정됨
@@ -900,6 +999,9 @@ case "$ARG1" in
     alias)    do_alias; exit 0 ;;
     install)  do_install; exit 0 ;;
     uninstall) do_uninstall; exit 0 ;;
+    save)     do_save; exit 0 ;;
+    exit)     do_exit; exit 0 ;;
+    load)     do_load; exit 0 ;;
 esac
 
 # ---------- 2. 인자 분석: alias / path / path-alias ----------
