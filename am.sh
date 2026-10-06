@@ -677,6 +677,12 @@ EOF
     # Capture pane output to log via tmux pipe-pane so claude's stdout
     # stays attached to the PTY and TTY detection succeeds.
     tmux pipe-pane -t "$session_name" -o "cat >> '${log_file}'" 2>/dev/null || true
+    # Track active session
+    local active="${CONFIG_BASE_DIR}/active_remotes.json"
+    local existing='[]'
+    [[ -f "$active" ]] && existing=$(cat "$active" 2>/dev/null || echo '[]')
+    printf '%s\n' "$(printf '%s' "$existing" | jq -c --arg a "$REMOTE_ALIAS" --arg p "$target_path" \
+        'map(select(.alias != $a)) + [{"alias":$a,"path":$p,"rc":true}]' 2>/dev/null || echo "$existing")" > "$active"
     echo "[완료] tmux 백그라운드 시작. https://claude.ai/code 에서 원격 제어 가능 (등록 성공 시)."
     echo "[안내] 로그 확인 (실시간): tail -f ${log_file}"
     echo "[안내] 부착 (디버깅용): tmux attach -t ${session_name}"
@@ -709,6 +715,13 @@ do_close() {
         fi
     done <<< "$sessions"
     echo "[완료] 총 ${killed}개 세션 종료됨."
+    # Remove from tracking
+    local active="${CONFIG_BASE_DIR}/active_remotes.json"
+    if [[ -f "$active" ]]; then
+        local updated
+        updated=$(jq -c --arg a "$close_alias" 'map(select(.alias != $a))' "$active" 2>/dev/null || echo '[]')
+        printf '%s\n' "$updated" > "$active"
+    fi
 }
 
 do_path() {
@@ -834,51 +847,15 @@ do_account() {
 
 do_save() {
     local snapshot="${CONFIG_BASE_DIR}/exit_snapshot.json"
-    if ! command -v tmux >/dev/null 2>&1; then
-        echo "[오류] tmux 미설치."; return 1
+    local active="${CONFIG_BASE_DIR}/active_remotes.json"
+    if [[ ! -f "$active" ]]; then
+        echo "[안내] 활성 remote 세션 없음. (am remote 로 실행한 세션 없음)"; return 0
     fi
-    local all_sessions
-    all_sessions=$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep -F 'claude-remote-' || true)
-    if [[ -z "$all_sessions" ]]; then
-        echo "[안내] 열려있는 remote 세션 없음."; return 0
-    fi
-    local known_aliases=()
-    local d
-    for d in "${CONFIG_BASE_DIR}"/*/; do
-        [[ -d "$d" ]] || continue
-        local name; name="$(basename "$d")"
-        [[ "$name" == "shared" ]] && continue
-        known_aliases+=("$name")
-    done
-    local json_arr='[]'
-    local s
-    while IFS= read -r s; do
-        [[ -z "$s" ]] && continue
-        local alias_part=""
-        local a
-        for a in "${known_aliases[@]}"; do
-            if [[ "$s" == "claude-remote-${a}-"* ]]; then
-                alias_part="$a"; break
-            fi
-        done
-        [[ -z "$alias_part" ]] && continue
-        local path_val=""
-        local pp="${CONFIG_BASE_DIR}/${alias_part}/last_path.txt"
-        [[ -f "$pp" ]] && path_val="$(tr -d '\r\n' < "$pp" 2>/dev/null || true)"
-        local rc_val="true"
-        local sp="${CONFIG_BASE_DIR}/${alias_part}/settings.json"
-        if [[ -f "$sp" ]]; then
-            local rcs
-            rcs=$(jq -r 'if has("remoteControlAtStartup") then (.remoteControlAtStartup | tostring) else "true" end' "$sp" 2>/dev/null || echo "true")
-            rc_val="$rcs"
-        fi
-        json_arr=$(printf '%s' "$json_arr" | jq -c --arg a "$alias_part" --arg p "$path_val" --argjson r "$rc_val" '. += [{"alias":$a,"path":$p,"rc":$r}]')
-    done <<< "$all_sessions"
-    local count; count=$(printf '%s' "$json_arr" | jq 'length')
+    local count; count=$(jq 'length' "$active" 2>/dev/null || echo 0)
     if [[ "$count" -eq 0 ]]; then
-        echo "[안내] 식별 가능한 remote 세션 없음."; return 0
+        echo "[안내] 활성 remote 세션 없음."; return 0
     fi
-    printf '%s\n' "$json_arr" > "$snapshot"
+    cp -f "$active" "$snapshot"
     echo "[저장] ${count}개 세션 정보 저장: ${snapshot}"
 }
 
@@ -898,6 +875,8 @@ do_exit() {
             echo "[종료] tmux 세션: $s"; killed=$((killed+1))
         fi
     done <<< "$all_sessions"
+    local active="${CONFIG_BASE_DIR}/active_remotes.json"
+    printf '[]\n' > "$active"
     echo "[완료] 총 ${killed}개 세션 종료됨."
 }
 

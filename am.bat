@@ -864,21 +864,40 @@ echo [remote] CLAUDE_CONFIG_DIR='!CLAUDE_CONFIG_DIR!'
 pushd "!TARGET_PATH!"
 start "!WIN_TITLE!" /MIN cmd /k claude --remote-control "!FOLDER!"
 popd
+:: Track active session
+set "ACTIVE_REMOTES=!CONFIG_BASE_DIR!\active_remotes.json"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$f='!ACTIVE_REMOTES!'; $e=@(); if(Test-Path $f){try{$e=@(Get-Content $f -Raw -Encoding UTF8 | ConvertFrom-Json)}catch{}}; $e=@($e | Where-Object {$_.alias -ne '!REMOTE_ALIAS!'}); $e+=[PSCustomObject]@{alias='!REMOTE_ALIAS!';path='!TARGET_PATH!';rc=$true}; $j='['+($e|ForEach-Object{$_|ConvertTo-Json -Depth 3 -Compress})-join',']+']'; [IO.File]::WriteAllText($f,$j,[Text.UTF8Encoding]::new($false))" >nul 2>&1
 echo [done] https://claude.ai/code remote control available.
 echo [info] window title: !WIN_TITLE!
 goto :EOF
 
 :DO_SAVE
 set "SNAPSHOT_FILE=!CONFIG_BASE_DIR!\exit_snapshot.json"
-echo 열려있는 remote 세션 정보 저장 중...
-powershell -NoProfile -ExecutionPolicy Bypass -File "!EXIT_PS!" "!CONFIG_BASE_DIR!" "!SNAPSHOT_FILE!"
+set "ACTIVE_REMOTES=!CONFIG_BASE_DIR!\active_remotes.json"
+if not exist "!ACTIVE_REMOTES!" (
+    echo [안내] 활성 remote 세션 없음. ^(am remote 로 실행한 세션 없음^)
+    goto :EOF
+)
+copy /Y "!ACTIVE_REMOTES!" "!SNAPSHOT_FILE!" >nul
+powershell -NoProfile -Command "$n=@(Get-Content '!ACTIVE_REMOTES!' -Raw -Encoding UTF8 | ConvertFrom-Json).Count; Write-Host \"[저장] ${n}개 세션 정보 저장: !SNAPSHOT_FILE!\""
 goto :EOF
 
 :DO_EXIT
 set "SNAPSHOT_FILE=!CONFIG_BASE_DIR!\exit_snapshot.json"
+set "ACTIVE_REMOTES=!CONFIG_BASE_DIR!\active_remotes.json"
 echo 현재 열려있는 remote 세션 정보를 저장하고 닫습니다...
-powershell -NoProfile -ExecutionPolicy Bypass -File "!EXIT_PS!" "!CONFIG_BASE_DIR!" "!SNAPSHOT_FILE!"
-powershell -NoProfile -Command "Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -like 'claude-remote-*' } | Stop-Process -Force -ErrorAction SilentlyContinue; Write-Host '[완료] 모든 remote 창 종료됨.'"
+if not exist "!ACTIVE_REMOTES!" (
+    echo [안내] 활성 remote 세션 없음.
+    goto :EOF
+)
+copy /Y "!ACTIVE_REMOTES!" "!SNAPSHOT_FILE!" >nul
+powershell -NoProfile -Command "$n=@(Get-Content '!ACTIVE_REMOTES!' -Raw -Encoding UTF8 | ConvertFrom-Json).Count; Write-Host \"[저장] ${n}개 세션 정보 저장: !SNAPSHOT_FILE!\""
+:: Kill all: by cmdline (reliable) + window title (fallback)
+powershell -NoProfile -Command "Get-WmiObject Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*--remote-control*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
+powershell -NoProfile -Command "Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -like 'claude-remote-*' } | Stop-Process -Force -ErrorAction SilentlyContinue"
+:: Clear tracking
+echo []>"!ACTIVE_REMOTES!"
+echo [완료] 모든 remote 세션 종료됨.
 goto :EOF
 
 :DO_LOAD
@@ -920,18 +939,24 @@ if "!CLOSE_ALIAS!"=="" (
 )
 set "TITLE_PATTERN=claude-remote-!CLOSE_ALIAS!-*"
 taskkill /F /FI "WINDOWTITLE eq !TITLE_PATTERN!" >nul 2>&1
-if errorlevel 1 (
-    echo [info] no remote window found for alias '!CLOSE_ALIAS!'
-) else (
-    echo [done] closed remote windows for alias '!CLOSE_ALIAS!'
-)
+:: Also kill by cmdline in case window title changed
+powershell -NoProfile -Command "Get-WmiObject Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*--remote-control*' } | ForEach-Object { $p = Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue; if ($p) { $p | Stop-Process -Force -ErrorAction SilentlyContinue } }" >nul 2>&1
+echo [done] closed remote sessions for alias '!CLOSE_ALIAS!'
+:: Remove from tracking
+set "ACTIVE_REMOTES=!CONFIG_BASE_DIR!\active_remotes.json"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$f='!ACTIVE_REMOTES!'; if(-not(Test-Path $f)){exit}; try{$e=@(Get-Content $f -Raw -Encoding UTF8 | ConvertFrom-Json | Where-Object {$_.alias -ne '!CLOSE_ALIAS!'}); $j=if($e.Count -eq 0){'[]'}else{'['+($e|ForEach-Object{$_|ConvertTo-Json -Depth 3 -Compress})-join','+']'}; [IO.File]::WriteAllText($f,$j,[Text.UTF8Encoding]::new($false))}catch{}" >nul 2>&1
 goto :EOF
 
 :LIST_REMOTE
 echo ==================================================
 echo               open remote sessions
 echo ==================================================
-powershell -NoProfile -Command "$ws = Get-Process | Where-Object { $_.MainWindowTitle -like 'claude-remote-*' } | Select-Object -ExpandProperty MainWindowTitle; if (-not $ws) { Write-Host '  no open remote sessions.' } else { $ws | ForEach-Object { Write-Host ('  ' + $_) } }"
+set "ACTIVE_REMOTES=!CONFIG_BASE_DIR!\active_remotes.json"
+if not exist "!ACTIVE_REMOTES!" (
+    echo   no open remote sessions.
+) else (
+    powershell -NoProfile -Command "$e=@(Get-Content '!ACTIVE_REMOTES!' -Raw -Encoding UTF8 | ConvertFrom-Json); if($e.Count -eq 0){Write-Host '  no open remote sessions.'}else{$e|ForEach-Object{Write-Host \"  alias=$($_.alias)  path=$($_.path)\"}}"
+)
 echo ==================================================
 goto :EOF
 
