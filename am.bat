@@ -8,7 +8,7 @@ chcp 65001 >nul
 :: ==================================================
 setlocal enabledelayedexpansion
 
-set "VERSION=1.2.0"
+set "VERSION=1.2.1"
 
 :: 기본 경로 설정
 set "CONFIG_BASE_DIR=%~dp0claude_configs"
@@ -176,35 +176,43 @@ echo $json = $ad ^| ConvertTo-Json -Depth 32
 echo [IO.File]::WriteAllText^($a, $json, [Text.UTF8Encoding]::new^($false^)^)
 ) > "!MERGE_SCRIPT!"
 
-:: exit 세션 수집 스크립트
+:: exit/save 세션 수집 스크립트 (active_remotes.json + WMI --remote-control 프로세스 스캔 병합)
 powershell -NoProfile -Command "[IO.File]::WriteAllBytes('!EXIT_PS!', [byte[]](0xEF,0xBB,0xBF))"
 (
 echo param^($ConfDir, $SnapshotFile^)
-echo $aliases = Get-ChildItem -Path $ConfDir -Directory -ErrorAction SilentlyContinue ^| Where-Object { $_.Name -ne 'shared' } ^| Select-Object -ExpandProperty Name
-echo $procs = Get-Process -ErrorAction SilentlyContinue ^| Where-Object { $_.MainWindowTitle -like 'claude-remote-*' }
-echo $titles = $procs ^| Select-Object -ExpandProperty MainWindowTitle
-echo $result = @^(^)
-echo foreach ^($title in $titles^) {
-echo     foreach ^($a in $aliases^) {
-echo         if ^($title.StartsWith^("claude-remote-$a-"^)^) {
-echo             $pp = Join-Path $ConfDir "$a\last_path.txt"
-echo             $path = ""
-echo             if ^(Test-Path $pp^) { $path = ^(Get-Content $pp -Raw -Encoding UTF8^).Trim^(^) }
-echo             $rc = $true
-echo             $sp = Join-Path $ConfDir "$a\settings.json"
-echo             if ^(Test-Path $sp^) {
-echo                 try { $st = Get-Content $sp -Raw -Encoding UTF8 ^| ConvertFrom-Json; if ^($st.PSObject.Properties.Name -contains 'remoteControlAtStartup'^) { $rc = [bool]$st.remoteControlAtStartup } } catch {}
-echo             }
-echo             $result += [PSCustomObject]@{ alias = $a; path = $path; rc = $rc }
+echo $active = Join-Path $ConfDir 'active_remotes.json'
+echo $tracked = @^(^)
+echo if ^(Test-Path $active^) { try { $tracked = @^(Get-Content $active -Raw -Encoding UTF8 ^| ConvertFrom-Json^) } catch {} }
+echo $trackedAliases = @^($tracked ^| ForEach-Object { $_.alias }^)
+echo $extra = @^(^)
+echo $rcProcs = @^(Get-WmiObject Win32_Process -ErrorAction SilentlyContinue ^| Where-Object { $_.CommandLine -like '*--remote-control*' }^)
+echo foreach ^($proc in $rcProcs^) {
+echo     $folder = ''
+echo     $parts = $proc.CommandLine -split '\s+'
+echo     $idx = [Array]::IndexOf^($parts, '--remote-control'^)
+echo     if ^($idx -ge 0 -and $idx+1 -lt $parts.Count^) { $folder = $parts[$idx+1].Trim^('"'^) }
+echo     if ^([string]::IsNullOrEmpty^($folder^)^) { continue }
+echo     $aliasDirs = @^(Get-ChildItem -Path $ConfDir -Directory -ErrorAction SilentlyContinue ^| Where-Object { $_.Name -ne 'shared' }^)
+echo     foreach ^($aDir in $aliasDirs^) {
+echo         $alias = $aDir.Name
+echo         if ^($trackedAliases -contains $alias^) { continue }
+echo         $lpFile = Join-Path $aDir.FullName 'last_path.txt'
+echo         if ^(-not ^(Test-Path $lpFile^)^) { continue }
+echo         $path = ^(Get-Content $lpFile -Raw -Encoding UTF8 -ErrorAction SilentlyContinue^).Trim^(^)
+echo         $pathLeaf = Split-Path $path -Leaf
+echo         if ^($pathLeaf -ieq $folder^) {
+echo             $extra += [PSCustomObject]@{alias=$alias; path=$path; rc=$true}
+echo             $trackedAliases += $alias
 echo             break
 echo         }
 echo     }
 echo }
-echo if ^($result.Count -eq 0^) { Write-Host "[안내] 식별 가능한 remote 세션 없음."; exit }
-echo $jsonItems = $result ^| ForEach-Object { $_ ^| ConvertTo-Json -Depth 3 -Compress }
-echo $json = "[$(($jsonItems) -join ',')]"
-echo [IO.File]::WriteAllText^($SnapshotFile, $json, [Text.UTF8Encoding]::new^($false^)^)
-echo Write-Host "[저장] $($result.Count)개 세션 정보 저장: $SnapshotFile"
+echo $all = $tracked + $extra
+echo if ^($all.Count -eq 0^) { Write-Host '[안내] 활성 remote 세션 없음.'; exit 1 }
+echo $j = '[' + ^($all ^| ForEach-Object { $_ ^| ConvertTo-Json -Depth 3 -Compress }^) -join ',' + ']'
+echo [IO.File]::WriteAllText^($SnapshotFile, $j, [Text.UTF8Encoding]::new^($false^)^)
+echo Write-Host "[저장] $^($all.Count^)개 세션 정보 저장: $SnapshotFile"
+echo exit 0
 ) >> "!EXIT_PS!"
 
 :: load 세션 복원 스크립트
@@ -873,25 +881,14 @@ goto :EOF
 
 :DO_SAVE
 set "SNAPSHOT_FILE=!CONFIG_BASE_DIR!\exit_snapshot.json"
-set "ACTIVE_REMOTES=!CONFIG_BASE_DIR!\active_remotes.json"
-if not exist "!ACTIVE_REMOTES!" (
-    echo [안내] 활성 remote 세션 없음. ^(am remote 로 실행한 세션 없음^)
-    goto :EOF
-)
-copy /Y "!ACTIVE_REMOTES!" "!SNAPSHOT_FILE!" >nul
-powershell -NoProfile -Command "$n=@(Get-Content '!ACTIVE_REMOTES!' -Raw -Encoding UTF8 | ConvertFrom-Json).Count; Write-Host \"[저장] ${n}개 세션 정보 저장: !SNAPSHOT_FILE!\""
+powershell -NoProfile -ExecutionPolicy Bypass -File "!EXIT_PS!" "!CONFIG_BASE_DIR!" "!SNAPSHOT_FILE!"
 goto :EOF
 
 :DO_EXIT
 set "SNAPSHOT_FILE=!CONFIG_BASE_DIR!\exit_snapshot.json"
 set "ACTIVE_REMOTES=!CONFIG_BASE_DIR!\active_remotes.json"
 echo 현재 열려있는 remote 세션 정보를 저장하고 닫습니다...
-if not exist "!ACTIVE_REMOTES!" (
-    echo [안내] 활성 remote 세션 없음.
-    goto :EOF
-)
-copy /Y "!ACTIVE_REMOTES!" "!SNAPSHOT_FILE!" >nul
-powershell -NoProfile -Command "$n=@(Get-Content '!ACTIVE_REMOTES!' -Raw -Encoding UTF8 | ConvertFrom-Json).Count; Write-Host \"[저장] ${n}개 세션 정보 저장: !SNAPSHOT_FILE!\""
+powershell -NoProfile -ExecutionPolicy Bypass -File "!EXIT_PS!" "!CONFIG_BASE_DIR!" "!SNAPSHOT_FILE!"
 :: Kill all: by cmdline (reliable) + window title (fallback)
 powershell -NoProfile -Command "Get-WmiObject Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*--remote-control*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
 powershell -NoProfile -Command "Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -like 'claude-remote-*' } | Stop-Process -Force -ErrorAction SilentlyContinue"

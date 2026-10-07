@@ -7,7 +7,7 @@
 # ==================================================
 set -u
 
-VERSION="1.2.0"
+VERSION="1.2.1"
 
 # 스크립트 위치 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -848,36 +848,67 @@ do_account() {
 do_save() {
     local snapshot="${CONFIG_BASE_DIR}/exit_snapshot.json"
     local active="${CONFIG_BASE_DIR}/active_remotes.json"
-    if [[ ! -f "$active" ]]; then
-        echo "[안내] 활성 remote 세션 없음. (am remote 로 실행한 세션 없음)"; return 0
-    fi
-    local count; count=$(jq 'length' "$active" 2>/dev/null || echo 0)
+
+    # Load already-tracked sessions from active_remotes.json
+    local tracked='[]'
+    [[ -f "$active" ]] && tracked=$(cat "$active" 2>/dev/null || echo '[]')
+    local tracked_aliases
+    tracked_aliases=$(printf '%s' "$tracked" | jq -r '.[].alias' 2>/dev/null || echo '')
+
+    # Scan for --remote-control processes not already in tracking
+    local extra='[]'
+    local pid folder cwd adir alias_name stored_path
+    while IFS= read -r pid; do
+        [[ -z "$pid" ]] && continue
+        folder=$(tr '\0' ' ' < "/proc/${pid}/cmdline" 2>/dev/null \
+            | sed 's/.*--remote-control[[:space:]]*//' | awk '{print $1}' | tr -d '"') || continue
+        [[ -z "$folder" ]] && continue
+        cwd=$(readlink -f "/proc/${pid}/cwd" 2>/dev/null) || continue
+        [[ -z "$cwd" ]] && continue
+        for adir in "${CONFIG_BASE_DIR}"/*/; do
+            alias_name=$(basename "$adir")
+            [[ "$alias_name" == "shared" ]] && continue
+            printf '%s\n' "$tracked_aliases" | grep -qx "$alias_name" && continue
+            [[ ! -f "${adir}last_path.txt" ]] && continue
+            stored_path=$(tr -d '\r\n' < "${adir}last_path.txt" 2>/dev/null) || continue
+            if [[ "$stored_path" == "$cwd" ]] || [[ "$(basename "$stored_path")" == "$folder" ]]; then
+                extra=$(printf '%s' "$extra" | jq -c --arg a "$alias_name" --arg p "$stored_path" \
+                    '. + [{"alias":$a,"path":$p,"rc":true}]' 2>/dev/null || echo "$extra")
+                tracked_aliases=$(printf '%s\n%s' "$tracked_aliases" "$alias_name")
+                break
+            fi
+        done
+    done < <(pgrep -af -- '--remote-control' 2>/dev/null | awk '{print $1}')
+
+    local all
+    all=$(printf '%s\n%s\n' "$tracked" "$extra" | jq -sc 'add // []' 2>/dev/null || echo "$tracked")
+    local count
+    count=$(printf '%s' "$all" | jq 'length' 2>/dev/null || echo 0)
+
     if [[ "$count" -eq 0 ]]; then
-        echo "[안내] 활성 remote 세션 없음."; return 0
+        echo "[안내] 활성 remote 세션 없음. (am remote 로 실행한 세션 없음)"; return 1
     fi
-    cp -f "$active" "$snapshot"
+    printf '%s\n' "$all" > "$snapshot"
     echo "[저장] ${count}개 세션 정보 저장: ${snapshot}"
 }
 
 do_exit() {
-    do_save || return 1
-    local snapshot="${CONFIG_BASE_DIR}/exit_snapshot.json"
-    [[ ! -f "$snapshot" ]] && return 0
-    local count; count=$(jq 'length' "$snapshot" 2>/dev/null || echo 0)
-    [[ "$count" -eq 0 ]] && return 0
-    local all_sessions
-    all_sessions=$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep -F 'claude-remote-' || true)
-    local killed=0
-    local s
-    while IFS= read -r s; do
-        [[ -z "$s" ]] && continue
-        if tmux kill-session -t "$s" 2>/dev/null; then
-            echo "[종료] tmux 세션: $s"; killed=$((killed+1))
-        fi
-    done <<< "$all_sessions"
     local active="${CONFIG_BASE_DIR}/active_remotes.json"
+    echo "현재 열려있는 remote 세션 정보를 저장하고 닫습니다..."
+    do_save || true
+    if command -v tmux >/dev/null 2>&1; then
+        local all_sessions
+        all_sessions=$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep -F 'claude-remote-' || true)
+        local killed=0 s
+        while IFS= read -r s; do
+            [[ -z "$s" ]] && continue
+            if tmux kill-session -t "$s" 2>/dev/null; then
+                echo "[종료] tmux 세션: $s"; killed=$((killed+1))
+            fi
+        done <<< "$all_sessions"
+        [[ $killed -gt 0 ]] && echo "[완료] 총 ${killed}개 세션 종료됨."
+    fi
     printf '[]\n' > "$active"
-    echo "[완료] 총 ${killed}개 세션 종료됨."
 }
 
 do_load() {
